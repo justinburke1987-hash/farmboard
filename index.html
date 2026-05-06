@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FarmBoard — The Task Board Built for Real Farms</title>
+<meta name="description" content="Text any task to your farm's number. It shows up on the board instantly. Your whole crew sees it. Built for mid-to-large farming operations by someone who's actually farmed.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:         #0f110e;
+    --surface:    #161a14;
+    --surface2:   #1e241b;
+    --border:     #2a3226;
+    --green:      #7ec850;
+    --green-dim:  #4a7a2e;
+    --amber:      #e8a030;
+    --amber-dim:  #7a5218;
+    --red:        #e05050;
+    --text:       #d4dbc8;
+    --text-dim:   #7a8a6a;
+    --text-muted: #4a5a3a;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+    --display: 'Bebas Neue', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  /* ── Utility ── */
+  .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+  .mono { font-family: var(--mono); }
+  .green { color: var(--green); }
+  .amber { color: var(--amber); }
+  .dim { color: var(--text-dim); }
+  .muted { color: var(--text-muted); }
+
+  /* ── Nav ── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    background: rgba(15,17,14,0.92);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+    height: 60px;
+    display: flex; align-items: center;
+  }
+  nav .container { display: flex; align-items: center; justify-content: space-between; width: 100%; }
+  .nav-logo { font-family: var(--display); font-size: 26px; color: var(--green); letter-spacing: 2px; text-decoration: none; }
+  .nav-cta { background: var(--green); color: #0f110e; border: none; border-radius: 4px; padding: 8px 20px; font-family: var(--mono); font-size: 12px; font-weight: 600; letter-spacing: 1px; cursor: pointer; text-decoration: none; display: inline-block; transition: opacity 0.15s; }
+  .nav-cta:hover { opacity: 0.85; }
+
+  /* ── Hero ── */
+  .hero {
+    padding: 140px 0 80px;
+    display: flex; align-items: center;
+  }
+  .hero .container { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; }
+  .hero-eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: 4px; color: var(--green); text-transform: uppercase; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; }
+  .hero-eyebrow::before { content: ''; width: 24px; height: 2px; background: var(--green); display: inline-block; }
+  .hero-headline { font-family: var(--display); font-size: clamp(48px, 6vw, 76px); line-height: 1; letter-spacing: 2px; color: var(--text); margin-bottom: 24px; }
+  .hero-headline span { color: var(--green); }
+  .hero-sub { font-size: 18px; color: var(--text-dim); line-height: 1.65; margin-bottom: 36px; max-width: 480px; }
+  .hero-form { display: flex; gap: 10px; flex-wrap: wrap; }
+  .hero-input {
+    flex: 1; min-width: 200px;
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 4px;
+    padding: 13px 16px; font-family: var(--sans); font-size: 15px; color: var(--text); outline: none;
+  }
+  .hero-input:focus { border-color: var(--green-dim); }
+  .hero-input::placeholder { color: var(--text-muted); }
+  .hero-btn { background: var(--green); color: #0f110e; border: none; border-radius: 4px; padding: 13px 28px; font-family: var(--mono); font-size: 13px; font-weight: 600; letter-spacing: 1px; cursor: pointer; white-space: nowrap; transition: opacity 0.15s; }
+  .hero-btn:hover { opacity: 0.85; }
+  .hero-note { font-family: var(--mono); font-size: 11px; color: var(--text-muted); margin-top: 12px; letter-spacing: 1px; }
+
+  /* ── App mockup ── */
+  .mockup-wrap { position: relative; }
+  .mockup {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(126,200,80,0.08);
+    font-size: 12px;
+  }
+  .mk-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: var(--surface); border-bottom: 1px solid var(--border); }
+  .mk-logo { font-family: var(--display); font-size: 16px; color: var(--green); letter-spacing: 2px; }
+  .mk-clock { font-family: var(--mono); font-size: 11px; color: var(--text-dim); }
+  .mk-tabs { display: flex; background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 14px; }
+  .mk-tab { font-family: var(--mono); font-size: 9px; letter-spacing: 2px; padding: 7px 10px; color: var(--text-muted); border-bottom: 2px solid transparent; }
+  .mk-tab.active { color: var(--green); border-bottom-color: var(--green); }
+  .mk-panels { display: flex; min-height: 220px; }
+  .mk-panel { flex: 1; padding: 0; overflow: hidden; }
+  .mk-panel:first-child { border-right: 1px solid var(--border); }
+  .mk-ph { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; border-bottom: 1px solid var(--border); }
+  .mk-pt { font-family: var(--display); font-size: 12px; letter-spacing: 2px; }
+  .mk-badge { font-family: var(--mono); font-size: 8px; padding: 2px 7px; border-radius: 2px; background: var(--green-dim); color: var(--green); }
+  .mk-badge.done { background: var(--surface2); color: var(--text-muted); }
+  .mk-task { display: flex; align-items: flex-start; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--border); }
+  .mk-dot { width: 5px; height: 5px; border-radius: 50%; background: transparent; margin-top: 5px; flex-shrink: 0; }
+  .mk-dot.hi { background: var(--red); }
+  .mk-cb { width: 13px; height: 13px; border: 1.5px solid var(--border); border-radius: 2px; flex-shrink: 0; margin-top: 2px; }
+  .mk-cb.checked { background: var(--green-dim); border-color: var(--green-dim); display: flex; align-items: center; justify-content: center; font-size: 8px; color: var(--green); }
+  .mk-body { flex: 1; min-width: 0; }
+  .mk-txt { font-size: 11px; color: var(--text); line-height: 1.3; margin-bottom: 3px; }
+  .mk-task.done .mk-txt { text-decoration: line-through; color: var(--text-muted); opacity: 0.5; }
+  .mk-meta { display: flex; gap: 5px; }
+  .mk-sender { font-family: var(--mono); font-size: 8px; color: var(--green); }
+  .mk-time { font-family: var(--mono); font-size: 8px; color: var(--text-muted); }
+  .mk-src { font-family: var(--mono); font-size: 7px; background: var(--surface2); color: var(--text-muted); padding: 0 4px; border-radius: 1px; }
+  .mk-new-pill {
+    position: absolute; top: 110px; right: -10px;
+    background: var(--green); color: #0f110e;
+    font-family: var(--mono); font-size: 9px; font-weight: 600; letter-spacing: 1px;
+    padding: 5px 10px; border-radius: 2px;
+    box-shadow: 0 4px 16px rgba(126,200,80,0.4);
+    animation: float 3s ease-in-out infinite;
+  }
+  @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
+  .mk-statusbar { display: flex; align-items: center; gap: 10px; padding: 6px 12px; background: var(--surface); border-top: 1px solid var(--border); }
+  .mk-si { font-family: var(--mono); font-size: 8px; color: var(--text-muted); display: flex; align-items: center; gap: 4px; }
+  .mk-sdot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); animation: pulse 2s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  .mk-snum { color: var(--green); font-weight: 600; }
+
+  /* ── Trust bar ── */
+  .trust-bar {
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    padding: 20px 0;
+    background: var(--surface);
+  }
+  .trust-bar .container { display: flex; align-items: center; gap: 40px; flex-wrap: wrap; justify-content: center; }
+  .trust-item { font-family: var(--mono); font-size: 11px; color: var(--text-muted); letter-spacing: 2px; display: flex; align-items: center; gap: 8px; }
+  .trust-item::before { content: '▸'; color: var(--green); }
+
+  /* ── Sections ── */
+  section { padding: 96px 0; }
+  .section-label { font-family: var(--mono); font-size: 10px; letter-spacing: 4px; color: var(--green); text-transform: uppercase; margin-bottom: 16px; }
+  .section-headline { font-family: var(--display); font-size: clamp(36px, 4vw, 54px); letter-spacing: 2px; line-height: 1.05; margin-bottom: 20px; }
+  .section-sub { font-size: 17px; color: var(--text-dim); max-width: 560px; line-height: 1.7; }
+
+  /* ── Problem ── */
+  .problem { background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  .problem .container { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center; }
+  .problem-list { list-style: none; margin-top: 32px; display: flex; flex-direction: column; gap: 16px; }
+  .problem-list li { display: flex; align-items: flex-start; gap: 12px; font-size: 16px; color: var(--text-dim); }
+  .problem-list li::before { content: '—'; color: var(--red); font-family: var(--mono); flex-shrink: 0; margin-top: 2px; }
+  .whiteboard-box {
+    border: 1px solid var(--border); border-radius: 6px;
+    background: var(--surface2); padding: 28px;
+    font-family: var(--mono); font-size: 13px; color: var(--text-muted);
+    line-height: 2; position: relative; overflow: hidden;
+  }
+  .whiteboard-box::before {
+    content: 'SHOP WHITEBOARD';
+    font-size: 9px; letter-spacing: 3px; color: var(--text-muted);
+    display: block; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 10px;
+  }
+  .wb-line { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .wb-box { width: 12px; height: 12px; border: 1.5px solid var(--text-muted); border-radius: 2px; flex-shrink: 0; }
+  .wb-box.x { background: var(--text-muted); }
+  .wb-strike { text-decoration: line-through; opacity: 0.5; }
+  .wb-smear {
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg, transparent 60%, rgba(30,36,27,0.8));
+    pointer-events: none;
+  }
+  .vs-arrow { text-align: center; font-family: var(--display); font-size: 28px; color: var(--border); margin: 0 -40px; }
+
+  /* ── How it works ── */
+  .how { }
+  .how-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; margin-top: 56px; }
+  .how-step {
+    background: var(--surface); border: 1px solid var(--border);
+    padding: 36px 32px; position: relative; overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .how-step:hover { border-color: var(--green-dim); }
+  .step-num { font-family: var(--display); font-size: 72px; color: var(--border); line-height: 1; margin-bottom: 24px; transition: color 0.2s; }
+  .how-step:hover .step-num { color: var(--green-dim); }
+  .step-icon { font-size: 28px; margin-bottom: 16px; display: block; }
+  .step-title { font-family: var(--display); font-size: 22px; letter-spacing: 2px; margin-bottom: 10px; }
+  .step-desc { font-size: 15px; color: var(--text-dim); line-height: 1.6; }
+
+  /* ── Features ── */
+  .features { background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; margin-top: 56px; background: var(--border); border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
+  .feat-card { background: var(--surface2); padding: 32px 28px; }
+  .feat-icon { font-size: 22px; margin-bottom: 16px; display: block; }
+  .feat-title { font-family: var(--mono); font-size: 12px; letter-spacing: 2px; color: var(--green); margin-bottom: 10px; text-transform: uppercase; }
+  .feat-desc { font-size: 14px; color: var(--text-dim); line-height: 1.65; }
+
+  /* ── History feature callout ── */
+  .history-callout {
+    margin-top: 56px;
+    background: linear-gradient(135deg, var(--surface2), var(--surface));
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--amber);
+    border-radius: 4px;
+    padding: 28px 32px;
+    display: flex; gap: 24px; align-items: flex-start;
+  }
+  .history-callout-icon { font-size: 28px; flex-shrink: 0; }
+  .history-callout-label { font-family: var(--mono); font-size: 10px; letter-spacing: 3px; color: var(--amber); margin-bottom: 8px; }
+  .history-callout-title { font-family: var(--display); font-size: 22px; letter-spacing: 2px; margin-bottom: 8px; }
+  .history-callout-desc { font-size: 15px; color: var(--text-dim); line-height: 1.65; }
+
+  /* ── Pricing ── */
+  .pricing { }
+  .pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; margin-top: 56px; }
+  .price-card {
+    background: var(--surface); border: 1px solid var(--border);
+    padding: 36px 32px; position: relative; transition: border-color 0.2s;
+  }
+  .price-card.featured {
+    border-color: var(--green-dim);
+    background: linear-gradient(180deg, rgba(74,122,46,0.08) 0%, var(--surface) 100%);
+  }
+  .price-card.featured::before {
+    content: 'MOST POPULAR';
+    position: absolute; top: -1px; left: 50%; transform: translateX(-50%);
+    background: var(--green); color: #0f110e;
+    font-family: var(--mono); font-size: 9px; font-weight: 600; letter-spacing: 2px;
+    padding: 4px 12px; border-radius: 0 0 4px 4px;
+  }
+  .price-tier { font-family: var(--mono); font-size: 10px; letter-spacing: 3px; color: var(--text-muted); margin-bottom: 16px; }
+  .price-amount { font-family: var(--display); font-size: 56px; letter-spacing: 1px; line-height: 1; margin-bottom: 4px; }
+  .price-amount span { font-family: var(--mono); font-size: 16px; color: var(--text-dim); vertical-align: top; margin-top: 12px; display: inline-block; }
+  .price-per { font-family: var(--mono); font-size: 11px; color: var(--text-muted); margin-bottom: 28px; }
+  .price-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+  .price-list li { font-size: 14px; color: var(--text-dim); display: flex; align-items: flex-start; gap: 10px; }
+  .price-list li::before { content: '✓'; color: var(--green); font-family: var(--mono); flex-shrink: 0; }
+  .price-note { font-family: var(--mono); font-size: 10px; color: var(--text-muted); margin-top: 24px; letter-spacing: 1px; }
+
+  /* ── Waitlist CTA ── */
+  .waitlist {
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    text-align: center;
+    padding: 96px 0;
+  }
+  .waitlist .section-headline { margin: 16px auto 20px; }
+  .waitlist .section-sub { margin: 0 auto 40px; text-align: center; }
+  .waitlist-form { display: flex; gap: 10px; max-width: 480px; margin: 0 auto; flex-wrap: wrap; justify-content: center; }
+  .waitlist-form input { flex: 1; min-width: 200px; background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 13px 16px; font-family: var(--sans); font-size: 15px; color: var(--text); outline: none; }
+  .waitlist-form input:focus { border-color: var(--green-dim); }
+  .waitlist-form input::placeholder { color: var(--text-muted); }
+  .waitlist-form button { background: var(--green); color: #0f110e; border: none; border-radius: 4px; padding: 13px 28px; font-family: var(--mono); font-size: 13px; font-weight: 600; letter-spacing: 1px; cursor: pointer; transition: opacity 0.15s; }
+  .waitlist-form button:hover { opacity: 0.85; }
+  .waitlist-reward { font-family: var(--mono); font-size: 11px; color: var(--amber); margin-top: 14px; letter-spacing: 1px; }
+
+  /* ── Footer ── */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 32px 0;
+  }
+  footer .container { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+  .footer-logo { font-family: var(--display); font-size: 20px; color: var(--green); letter-spacing: 2px; }
+  .footer-copy { font-family: var(--mono); font-size: 11px; color: var(--text-muted); letter-spacing: 1px; }
+  .footer-built { font-family: var(--mono); font-size: 11px; color: var(--text-muted); text-align: right; }
+
+  /* ── Thank you state ── */
+  .thankyou-msg { display: none; font-family: var(--mono); font-size: 13px; color: var(--green); letter-spacing: 1px; margin-top: 20px; }
+  .thankyou-msg.show { display: block; }
+
+  /* ── Responsive ── */
+  @media (max-width: 900px) {
+    .hero .container { grid-template-columns: 1fr; gap: 48px; }
+    .mockup-wrap { max-width: 500px; }
+    .mk-new-pill { right: 0; }
+    .problem .container { grid-template-columns: 1fr; gap: 40px; }
+    .how-steps { grid-template-columns: 1fr; }
+    .features-grid { grid-template-columns: 1fr 1fr; }
+    .pricing-grid { grid-template-columns: 1fr; max-width: 420px; }
+    .vs-arrow { display: none; }
+  }
+
+  @media (max-width: 600px) {
+    .features-grid { grid-template-columns: 1fr; }
+    section { padding: 64px 0; }
+    .hero { padding: 110px 0 60px; }
+    .trust-bar .container { gap: 20px; flex-direction: column; align-items: flex-start; }
+    .history-callout { flex-direction: column; gap: 12px; }
+    footer .container { flex-direction: column; align-items: flex-start; }
+    .footer-built { text-align: left; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── Nav ── -->
+<nav>
+  <div class="container">
+    <a class="nav-logo" href="#">FARMBOARD</a>
+    <a class="nav-cta" href="#waitlist">JOIN WAITLIST</a>
+  </div>
+</nav>
+
+<!-- ── Hero ── -->
+<section class="hero">
+  <div class="container">
+    <div class="hero-content">
+      <div class="hero-eyebrow">Now Accepting Early Access</div>
+      <h1 class="hero-headline">TEXT IT IN.<br><span>IT SHOWS UP.</span><br>IT GETS DONE.</h1>
+      <p class="hero-sub">FarmBoard replaces the whiteboard in your shop with a live task board your whole crew can see and update — by text. Built for farming operations by someone who's actually farmed.</p>
+      <form class="hero-form" id="heroForm" onsubmit="handleSignup(event, 'heroForm')">
+        <input class="hero-input" type="email" name="email" placeholder="your@email.com" required>
+        <button class="hero-btn" type="submit">JOIN WAITLIST</button>
+      </form>
+      <div class="hero-note">&#9651; EARLY ACCESS &mdash; 3 MONTHS FREE AT LAUNCH &mdash; NO CREDIT CARD</div>
+    </div>
+
+    <!-- App mockup -->
+    <div class="mockup-wrap">
+      <div class="mockup">
+        <div class="mk-header">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span class="mk-logo">FARMBOARD</span>
+            <span style="font-family:var(--mono);font-size:8px;color:var(--text-muted);letter-spacing:1px;">BURKE FAMILY FARM</span>
+          </div>
+          <span class="mk-clock">07:31:04</span>
+        </div>
+        <div class="mk-tabs">
+          <div class="mk-tab active">&#11035; BOARD</div>
+          <div class="mk-tab">&#128203; HISTORY</div>
+          <div class="mk-tab">&#128241; INBOX</div>
+        </div>
+        <div class="mk-panels">
+          <div class="mk-panel">
+            <div class="mk-ph"><span class="mk-pt">ACTIVE JOBS</span><span class="mk-badge">4 OPEN</span></div>
+            <div class="mk-task">
+              <div class="mk-dot hi"></div>
+              <div class="mk-cb"></div>
+              <div class="mk-body">
+                <div class="mk-txt">Call co-op about chemical delivery &mdash; urgent</div>
+                <div class="mk-meta"><span class="mk-sender">Dave</span><span class="mk-time">6:45 AM</span><span class="mk-src">TEXT</span></div>
+              </div>
+            </div>
+            <div class="mk-task">
+              <div class="mk-dot"></div>
+              <div class="mk-cb"></div>
+              <div class="mk-body">
+                <div class="mk-txt">Check oil on big John Deere before field work</div>
+                <div class="mk-meta"><span class="mk-sender">Roger</span><span class="mk-time">6:12 AM</span><span class="mk-src">TEXT</span></div>
+              </div>
+            </div>
+            <div class="mk-task">
+              <div class="mk-dot"></div>
+              <div class="mk-cb"></div>
+              <div class="mk-body">
+                <div class="mk-txt">Move grain cart from north bin to shop yard</div>
+                <div class="mk-meta"><span class="mk-sender">Mike</span><span class="mk-time">7:03 AM</span><span class="mk-src">TELEGRAM</span></div>
+              </div>
+            </div>
+            <div class="mk-task">
+              <div class="mk-dot"></div>
+              <div class="mk-cb"></div>
+              <div class="mk-body">
+                <div class="mk-txt">Replace marker light on planter &mdash; right rear</div>
+                <div class="mk-meta"><span class="mk-sender">Roger</span><span class="mk-time">7:31 AM</span><span class="mk-src">TEXT</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="mk-panel">
+            <div class="mk-ph"><span class="mk-pt">DONE TODAY</span><span class="mk-badge done">1 DONE</span></div>
+            <div class="mk-task done">
+              <div class="mk-dot"></div>
+              <div class="mk-cb checked">&#10003;</div>
+              <div class="mk-body">
+                <div class="mk-txt">Grease planter row units, check disc openers</div>
+                <div class="mk-meta"><span class="mk-sender">Roger</span><span class="mk-time">5:50 AM</span><span class="mk-src">MANUAL</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="mk-statusbar">
+          <div class="mk-si"><div class="mk-sdot"></div>LIVE</div>
+          <div class="mk-si">OPEN: <span class="mk-snum">4</span></div>
+          <div class="mk-si">DONE: <span class="mk-snum">1</span></div>
+        </div>
+      </div>
+      <div class="mk-new-pill">&#128241; NEW SMS FROM DAVE</div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Trust bar ── -->
+<div class="trust-bar">
+  <div class="container">
+    <div class="trust-item">NO APP TO DOWNLOAD</div>
+    <div class="trust-item">WORKS ON ANY SCREEN</div>
+    <div class="trust-item">SMS OR TELEGRAM</div>
+    <div class="trust-item">SEASONAL HISTORY BUILT IN</div>
+    <div class="trust-item">BUILT BY A FARMER</div>
+  </div>
+</div>
+
+<!-- ── Problem ── -->
+<section class="problem">
+  <div class="container">
+    <div class="whiteboard-box">
+      <div class="wb-line"><div class="wb-box x"></div><span class="wb-strike">grease planter</span></div>
+      <div class="wb-line"><div class="wb-box"></div><span>call co-op ?? chemical</span></div>
+      <div class="wb-line"><div class="wb-box"></div><span>grain cart north bin</span></div>
+      <div class="wb-line"><div class="wb-box"></div><span>??? who had the JD</span></div>
+      <div class="wb-line"><div class="wb-box x"></div><span class="wb-strike">tire - wagon #3</span></div>
+      <div class="wb-line"><div class="wb-box"></div><span style="opacity:0.4;">⟵ what does this say</span></div>
+      <div class="wb-smear"></div>
+    </div>
+
+    <div>
+      <div class="section-label">The Problem</div>
+      <h2 class="section-headline">The whiteboard works &mdash;<br><span class="green">until it doesn't.</span></h2>
+      <ul class="problem-list">
+        <li>Someone adds a task when you're in the field — you don't see it until dinner</li>
+        <li>Handwriting gets wiped, tasks get lost, nobody remembers who was supposed to do what</li>
+        <li>Busy season hits and coordination breaks down exactly when it matters most</li>
+        <li>No record of what got done — or what you were doing this same week last year</li>
+        <li>Every farm hand needs to be at the board to know the plan for the day</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ── How it works ── -->
+<section class="how">
+  <div class="container">
+    <div class="section-label">How It Works</div>
+    <h2 class="section-headline">Three steps.<br>That's the whole thing.</h2>
+    <div class="how-steps">
+      <div class="how-step">
+        <div class="step-num">01</div>
+        <span class="step-icon">&#128241;</span>
+        <div class="step-title">TEXT THE NUMBER</div>
+        <p class="step-desc">Any trusted farm hand texts your farm's dedicated number. No app, no login, no training. If they can text, they can add a task.</p>
+      </div>
+      <div class="how-step">
+        <div class="step-num">02</div>
+        <span class="step-icon">&#128196;</span>
+        <div class="step-title">IT SHOWS UP</div>
+        <p class="step-desc">The task appears on the board instantly — on the shop TV, your phone, a tablet in the cab. Everyone on the farm sees it in real time.</p>
+      </div>
+      <div class="how-step">
+        <div class="step-num">03</div>
+        <span class="step-icon">&#10003;</span>
+        <div class="step-title">CHECK IT OFF</div>
+        <p class="step-desc">Tap to complete. Done tasks are archived automatically, building a searchable history that surfaces what you were doing this same week in prior years.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Features ── -->
+<section class="features">
+  <div class="container">
+    <div class="section-label">Features</div>
+    <h2 class="section-headline">Built for the shop, not a startup.</h2>
+    <p class="section-sub">High-contrast, readable from across the room. Designed for shop TVs, phone screens, and tablet mounts on equipment.</p>
+    <div class="features-grid">
+      <div class="feat-card">
+        <span class="feat-icon">&#128241;</span>
+        <div class="feat-title">SMS & Telegram In</div>
+        <p class="feat-desc">Tasks come in via text or Telegram. Only trusted numbers on your allowlist can add tasks — no spam, no strangers.</p>
+      </div>
+      <div class="feat-card">
+        <span class="feat-icon">&#128250;</span>
+        <div class="feat-title">Shop TV Mode</div>
+        <p class="feat-desc">One-tap fullscreen. Designed to be readable at 15 feet. Put it on the shop TV and the whole crew stays in sync without touching it.</p>
+      </div>
+      <div class="feat-card">
+        <span class="feat-icon">&#128203;</span>
+        <div class="feat-title">Seasonal History</div>
+        <p class="feat-desc">The History tab shows what you were doing this exact week in prior years. Built-in institutional memory for pre-season prep.</p>
+      </div>
+      <div class="feat-card">
+        <span class="feat-icon">&#128100;</span>
+        <div class="feat-title">Named Farm Hands</div>
+        <p class="feat-desc">Every task shows who added it and when. Phone numbers map to real names so Roger's tasks show as Roger, not a 10-digit number.</p>
+      </div>
+      <div class="feat-card">
+        <span class="feat-icon">&#128308;</span>
+        <div class="feat-title">Priority Flagging</div>
+        <p class="feat-desc">Mark any task urgent. Priority tasks sort to the top with a red indicator so critical jobs never get buried under routine work.</p>
+      </div>
+      <div class="feat-card">
+        <span class="feat-icon">&#9889;</span>
+        <div class="feat-title">Real-Time Updates</div>
+        <p class="feat-desc">No refreshing. When a task comes in or gets checked off, every screen on the farm updates instantly via live data subscriptions.</p>
+      </div>
+    </div>
+
+    <!-- History callout -->
+    <div class="history-callout">
+      <div class="history-callout-icon">&#128197;</div>
+      <div>
+        <div class="history-callout-label">Key Differentiator</div>
+        <div class="history-callout-title">"What were we doing this week last year?"</div>
+        <p class="history-callout-desc">Every farm has institutional knowledge that lives in someone's head. FarmBoard captures it automatically. When pre-planting week hits, you'll see exactly what you checked off in the same window last year — and the year before. No other tool does this for farms.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Pricing ── -->
+<section class="pricing">
+  <div class="container">
+    <div class="section-label">Pricing</div>
+    <h2 class="section-headline">Less than a tank of def fluid.<br>Every month.</h2>
+    <p class="section-sub">Simple flat pricing. No per-seat fees, no usage caps on tasks. Cancel anytime.</p>
+    <div class="pricing-grid">
+      <div class="price-card">
+        <div class="price-tier">STARTER</div>
+        <div class="price-amount"><span>$</span>29</div>
+        <div class="price-per">/ MONTH</div>
+        <ul class="price-list">
+          <li>1 dedicated phone number</li>
+          <li>Up to 5 trusted contacts</li>
+          <li>90-day task history</li>
+          <li>SMS task entry</li>
+          <li>Board + mobile view</li>
+        </ul>
+        <div class="price-note">GOOD FOR SMALL OPERATIONS</div>
+      </div>
+      <div class="price-card featured">
+        <div class="price-tier">FARM</div>
+        <div class="price-amount"><span>$</span>49</div>
+        <div class="price-per">/ MONTH</div>
+        <ul class="price-list">
+          <li>1 dedicated phone number</li>
+          <li>Unlimited trusted contacts</li>
+          <li>2-year task history</li>
+          <li>SMS + Telegram entry</li>
+          <li>Full seasonal history view</li>
+          <li>Priority task flagging</li>
+        </ul>
+        <div class="price-note">MOST FARMS START HERE</div>
+      </div>
+      <div class="price-card">
+        <div class="price-tier">OPERATION</div>
+        <div class="price-amount"><span>$</span>79</div>
+        <div class="price-per">/ MONTH</div>
+        <ul class="price-list">
+          <li>Up to 3 phone numbers</li>
+          <li>Unlimited contacts</li>
+          <li>Full history, all time</li>
+          <li>Task assignment to farm hands</li>
+          <li>Admin + viewer roles</li>
+          <li>SMS reply confirmation</li>
+        </ul>
+        <div class="price-note">FOR MULTI-CREW OPERATIONS</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Waitlist CTA ── -->
+<section class="waitlist" id="waitlist">
+  <div class="container">
+    <div class="section-label">Early Access</div>
+    <h2 class="section-headline">Get in before launch.</h2>
+    <p class="section-sub">FarmBoard is in early access. Join the waitlist and get 3 months free on any plan when we go live. No credit card, no obligation.</p>
+    <form class="waitlist-form" id="waitlistForm" onsubmit="handleSignup(event, 'waitlistForm')">
+      <input type="email" name="email" placeholder="your@email.com" required>
+      <button type="submit">JOIN WAITLIST</button>
+    </form>
+    <div class="waitlist-reward">&#9651; EARLY ADOPTERS GET 3 MONTHS FREE &mdash; PRICE LOCKED AT SIGN-UP RATE</div>
+    <div class="thankyou-msg" id="thankYouMsg">&#10003; YOU'RE ON THE LIST &mdash; WE'LL BE IN TOUCH BEFORE LAUNCH.</div>
+  </div>
+</section>
+
+<!-- ── Footer ── -->
+<footer>
+  <div class="container">
+    <div class="footer-logo">FARMBOARD</div>
+    <div class="footer-copy mono">farmboardapp.com &mdash; &copy; 2026</div>
+    <div class="footer-built">Built by a farmer, for farmers.<br><span style="color:var(--text-muted);font-size:10px;">Justin Burke &mdash; 13 years precision ag</span></div>
+  </div>
+</footer>
+
+<script>
+  // ── Waitlist form handler ──
+  // To activate: create a free account at formspree.io, create a form,
+  // and replace YOUR_FORM_ID below with your unique form ID.
+  const FORMSPREE_ID = 'YOUR_FORM_ID';
+
+  function handleSignup(e, formId) {
+    e.preventDefault();
+    const form = document.getElementById(formId);
+    const email = form.querySelector('input[type="email"]').value.trim();
+    if (!email) return;
+
+    if (FORMSPREE_ID === 'YOUR_FORM_ID') {
+      // Dev mode: just show thank you
+      showThankYou(form);
+      return;
+    }
+
+    fetch('https://formspree.io/f/' + FORMSPREE_ID, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({ email: email }),
+    })
+    .then(r => {
+      if (r.ok) showThankYou(form);
+      else alert('Something went wrong. Please try again.');
+    })
+    .catch(() => alert('Something went wrong. Please try again.'));
+  }
+
+  function showThankYou(form) {
+    form.style.display = 'none';
+    // Show whichever thank-you element is nearest
+    const nearby = form.parentElement.querySelector('.thankyou-msg, .waitlist-reward');
+    if (nearby) {
+      nearby.style.display = 'none'; // hide the reward line if present
+    }
+    document.getElementById('thankYouMsg').classList.add('show');
+
+    // Also replace hero note if signup was from hero
+    const heroNote = document.querySelector('.hero-note');
+    if (heroNote) heroNote.textContent = '\u2713 You\'re on the list \u2014 we\'ll reach out before launch.';
+  }
+</script>
+
+</body>
+</html>
