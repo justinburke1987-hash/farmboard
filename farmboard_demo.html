@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FarmBoard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f110e; --surface: #161a14; --surface2: #1e241b; --border: #2a3226;
+    --green: #7ec850; --green-dim: #4a7a2e;
+    --amber: #e8a030; --amber-dim: #7a5218; --red: #e05050;
+    --text: #d4dbc8; --text-dim: #7a8a6a; --text-muted: #4a5a3a;
+    --mono: 'IBM Plex Mono', monospace; --sans: 'IBM Plex Sans', sans-serif; --display: 'Bebas Neue', sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: var(--sans); height: 100dvh; overflow: hidden; display: flex; flex-direction: column; }
+
+  /* ── Header */
+  .header { display: flex; align-items: center; justify-content: space-between; padding: 0 14px 0 20px; height: 58px; background: var(--surface); border-bottom: 1px solid var(--border); flex-shrink: 0; gap: 12px; }
+  .logo { display: flex; align-items: center; gap: 10px; min-width: 0; overflow: hidden; }
+  .logo-img { height: 36px; width: auto; max-width: 100px; object-fit: contain; border-radius: 2px; display: none; flex-shrink: 0; }
+  .logo-mark { font-family: var(--display); font-size: 28px; color: var(--green); letter-spacing: 2px; white-space: nowrap; flex-shrink: 0; }
+  .farm-name { font-family: var(--mono); font-size: 11px; color: var(--text-dim); letter-spacing: 2px; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .header-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .clock-wrap { text-align: right; }
+  .clock { font-family: var(--mono); font-size: 18px; color: var(--text-dim); letter-spacing: 2px; }
+  .date-label { font-family: var(--mono); font-size: 10px; color: var(--text-muted); letter-spacing: 1px; }
+  .icon-btn { background: transparent; border: 1px solid var(--border); border-radius: 3px; color: var(--text-dim); cursor: pointer; font-size: 14px; padding: 5px 8px; line-height: 1; transition: all 0.1s; }
+  .icon-btn:hover { color: var(--text); border-color: var(--text-dim); }
+
+  /* ── Tabs */
+  .tabs { display: flex; background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 20px; flex-shrink: 0; }
+  .tab { font-family: var(--mono); font-size: 11px; letter-spacing: 2px; text-transform: uppercase; padding: 11px 16px; border: none; background: transparent; color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent; transition: color 0.1s; }
+  .tab.active { color: var(--green); border-bottom-color: var(--green); }
+
+  /* ── Main layout */
+  .main { display: flex; flex: 1; overflow: hidden; }
+  .panel { display: flex; flex-direction: column; overflow: hidden; }
+  .panel-left { flex: 1; border-right: 1px solid var(--border); }
+  .panel-right { flex: 0.8; }
+  .panel-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px 10px 20px; border-bottom: 1px solid var(--border); flex-shrink: 0; gap: 8px; }
+  .panel-title { font-family: var(--display); font-size: 19px; letter-spacing: 3px; }
+  .badge { font-family: var(--mono); font-size: 11px; padding: 3px 10px; border-radius: 2px; letter-spacing: 1px; }
+  .badge-green { background: var(--green-dim); color: var(--green); }
+  .badge-muted { background: var(--surface2); color: var(--text-muted); }
+
+  /* ── Archive button */
+  .archive-btn { font-family: var(--mono); font-size: 10px; letter-spacing: 1px; padding: 4px 9px; background: transparent; border: 1px solid var(--border); border-radius: 2px; color: var(--text-muted); cursor: pointer; white-space: nowrap; display: none; transition: all 0.15s; }
+  .archive-btn:hover { color: var(--amber); border-color: var(--amber-dim); }
+  .archive-btn.visible { display: block; }
+
+  /* ── Task list */
+  .task-list { flex: 1; overflow-y: auto; }
+  .task-list::-webkit-scrollbar { width: 3px; }
+  .task-list::-webkit-scrollbar-thumb { background: var(--border); }
+
+  .task-item { display: flex; align-items: flex-start; gap: 12px; padding: 13px 20px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.12s; -webkit-tap-highlight-color: transparent; }
+  .task-item:hover { background: var(--surface2); }
+  .task-item.done { opacity: 0.45; }
+  .task-item.done .task-text { text-decoration: line-through; color: var(--text-muted); }
+
+  .cb { width: 22px; height: 22px; border: 2px solid var(--border); border-radius: 3px; flex-shrink: 0; margin-top: 2px; display: flex; align-items: center; justify-content: center; }
+  .task-item.done .cb { background: var(--green-dim); border-color: var(--green-dim); }
+  .ck { color: var(--green); font-size: 13px; display: none; }
+  .task-item.done .ck { display: block; }
+
+  .task-body { flex: 1; min-width: 0; }
+  .task-text { font-size: 15px; font-weight: 500; line-height: 1.35; margin-bottom: 5px; word-break: break-word; }
+  .meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .sender { font-family: var(--mono); font-size: 11px; color: var(--green); letter-spacing: 1px; }
+  .time { font-family: var(--mono); font-size: 11px; color: var(--text-muted); }
+  .src-tag { font-family: var(--mono); font-size: 10px; color: var(--text-muted); background: var(--surface2); padding: 1px 6px; border-radius: 2px; }
+  .pdot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; margin-top: 9px; }
+  .pdot.hi { background: var(--red); box-shadow: 0 0 5px var(--red); }
+  .pdot.lo { background: transparent; }
+
+  .sec-label { padding: 8px 20px; font-family: var(--mono); font-size: 10px; letter-spacing: 3px; color: var(--text-muted); border-bottom: 1px solid var(--border); background: var(--bg); }
+  .empty-msg { padding: 40px 20px; text-align: center; font-family: var(--mono); font-size: 11px; color: var(--text-muted); letter-spacing: 2px; line-height: 1.9; }
+
+  /* ── Add bar */
+  .add-bar { border-top: 1px solid var(--border); padding: 10px 14px; display: flex; gap: 8px; background: var(--surface); flex-shrink: 0; flex-wrap: wrap; align-items: center; }
+  .sel { background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 8px 10px; font-family: var(--mono); font-size: 11px; color: var(--text-dim); outline: none; }
+  .inp { flex: 1; min-width: 100px; background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 9px 12px; font-family: var(--sans); font-size: 14px; color: var(--text); outline: none; }
+  .inp:focus { border-color: var(--green-dim); }
+  .inp::placeholder { color: var(--text-muted); }
+  .add-btn { background: var(--green); color: #0f110e; border: none; border-radius: 4px; padding: 9px 14px; font-family: var(--mono); font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+  .sim-btn { background: var(--amber-dim); color: var(--amber); border: 1px solid var(--amber-dim); border-radius: 4px; padding: 9px 10px; font-family: var(--mono); font-size: 11px; cursor: pointer; white-space: nowrap; }
+  .pri-btn { background: transparent; border: 1px solid var(--border); border-radius: 4px; padding: 8px 10px; font-family: var(--mono); font-size: 11px; color: var(--text-muted); cursor: pointer; white-space: nowrap; transition: all 0.15s; }
+  .pri-btn.on { background: rgba(224,80,80,0.12); border-color: var(--red); color: var(--red); }
+
+  /* ── Tab view containers */
+  .tv { display: none; flex: 1; overflow: hidden; }
+  .tv.active { display: flex; }
+  .tvf { display: none; flex: 1; overflow-y: auto; flex-direction: column; }
+  .tvf.active { display: flex; }
+
+  /* ── History */
+  .hgroup { padding: 16px 20px 12px; border-bottom: 1px solid var(--border); }
+  .hdate { font-family: var(--display); font-size: 15px; letter-spacing: 3px; color: var(--text-dim); margin-bottom: 10px; display: flex; align-items: center; gap: 10px; }
+  .yrbadge { font-family: var(--mono); font-size: 10px; padding: 2px 8px; background: var(--surface2); color: var(--amber); border-radius: 2px; letter-spacing: 2px; }
+  .htask { display: flex; align-items: flex-start; gap: 10px; padding: 7px 4px; font-size: 13px; color: var(--text-dim); border-bottom: 1px dashed var(--border); cursor: pointer; border-radius: 2px; transition: background 0.1s; }
+  .htask:last-child { border-bottom: none; }
+  .htask:hover { background: var(--surface2); }
+  .hico { color: var(--text-muted); font-size: 11px; margin-top: 2px; flex-shrink: 0; }
+  .htxt { flex: 1; line-height: 1.4; }
+  .hmeta { font-family: var(--mono); font-size: 10px; color: var(--text-muted); flex-shrink: 0; }
+
+  /* ── Inbox */
+  .iitem { padding: 14px 20px; border-bottom: 1px solid var(--border); }
+  .ihead { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; flex-wrap: wrap; gap: 6px; }
+  .ifrom { font-family: var(--mono); font-size: 12px; color: var(--green); }
+  .imeta { display: flex; gap: 8px; align-items: center; }
+  .ich { font-family: var(--mono); font-size: 10px; background: var(--surface2); color: var(--amber); padding: 2px 8px; border-radius: 2px; }
+  .itm { font-family: var(--mono); font-size: 11px; color: var(--text-muted); }
+  .imsg { font-size: 14px; color: var(--text); line-height: 1.4; }
+
+  /* ── Status bar */
+  .statusbar { display: flex; align-items: center; gap: 16px; padding: 7px 20px; background: var(--surface); border-top: 1px solid var(--border); flex-shrink: 0; }
+  .si { font-family: var(--mono); font-size: 11px; color: var(--text-muted); letter-spacing: 1px; display: flex; align-items: center; gap: 5px; }
+  .sdot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: pulse 2s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  .snum { color: var(--green); font-weight: 600; }
+  .sfarm { margin-left: auto; font-family: var(--mono); font-size: 11px; color: var(--text-muted); letter-spacing: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* ── Toast */
+  .toast { position: fixed; bottom: 58px; left: 50%; transform: translateX(-50%) translateY(14px); background: var(--surface2); border: 1px solid var(--green-dim); border-radius: 4px; padding: 10px 18px; font-family: var(--mono); font-size: 12px; color: var(--green); letter-spacing: 1px; opacity: 0; transition: all 0.2s; z-index: 500; white-space: nowrap; pointer-events: none; }
+  .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+  /* ── Settings overlay */
+  .scrim { position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 399; display: none; }
+  .scrim.open { display: block; }
+  .settings-panel { position: fixed; top: 0; right: 0; bottom: 0; width: 380px; background: var(--surface); border-left: 2px solid var(--border); z-index: 400; display: flex; flex-direction: column; transform: translateX(100%); transition: transform 0.25s ease; }
+  .settings-panel.open { transform: translateX(0); }
+  .set-head { display: flex; align-items: center; justify-content: space-between; padding: 18px 20px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .set-title { font-family: var(--display); font-size: 22px; letter-spacing: 3px; }
+  .set-close { background: transparent; border: none; color: var(--text-dim); font-size: 20px; cursor: pointer; padding: 2px 6px; line-height: 1; }
+  .set-close:hover { color: var(--text); }
+  .set-body { flex: 1; overflow-y: auto; }
+  .set-section { padding: 20px; border-bottom: 1px solid var(--border); }
+  .set-section-label { font-family: var(--mono); font-size: 10px; letter-spacing: 3px; color: var(--text-muted); margin-bottom: 14px; }
+  .set-field-label { font-family: var(--mono); font-size: 11px; color: var(--text-dim); margin-bottom: 6px; }
+  .set-row { margin-bottom: 14px; }
+  .set-inp { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 9px 12px; font-family: var(--sans); font-size: 14px; color: var(--text); outline: none; }
+  .set-inp:focus { border-color: var(--green-dim); }
+
+  /* Logo upload area */
+  .logo-upload-area { border: 1px dashed var(--border); border-radius: 4px; padding: 18px 16px; text-align: center; cursor: pointer; transition: border-color 0.15s; }
+  .logo-upload-area:hover { border-color: var(--green-dim); }
+  .logo-preview-img { max-height: 60px; max-width: 200px; object-fit: contain; display: none; margin: 0 auto 10px; border-radius: 2px; }
+  .logo-upload-hint { font-family: var(--mono); font-size: 11px; color: var(--text-muted); letter-spacing: 1px; }
+  .logo-remove-btn { font-family: var(--mono); font-size: 10px; color: var(--red); background: none; border: none; cursor: pointer; margin-top: 8px; display: none; letter-spacing: 1px; }
+
+  /* Farm hands list */
+  .hand-list { list-style: none; margin-bottom: 10px; border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
+  .hand-list:empty { display: none; }
+  .hand-item { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; border-bottom: 1px solid var(--border); }
+  .hand-item:last-child { border-bottom: none; }
+  .hand-name { font-family: var(--mono); font-size: 13px; color: var(--text); }
+  .hand-rm { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 16px; padding: 0 4px; line-height: 1; }
+  .hand-rm:hover { color: var(--red); }
+  .hand-add-row { display: flex; gap: 8px; }
+
+  /* Settings buttons */
+  .set-save-btn { background: var(--green); color: #0f110e; border: none; border-radius: 4px; padding: 11px 16px; font-family: var(--mono); font-size: 12px; font-weight: 600; cursor: pointer; width: 100%; }
+  .set-danger-btn { background: transparent; border: 1px solid var(--border); color: var(--text-muted); border-radius: 4px; padding: 11px 16px; font-family: var(--mono); font-size: 12px; cursor: pointer; width: 100%; margin-top: 10px; }
+  .set-danger-btn:hover { border-color: var(--red); color: var(--red); }
+
+  /* ── Animations */
+  @keyframes slideIn { from{opacity:0;transform:translateX(-10px)} to{opacity:1;transform:translateX(0)} }
+  .new { animation: slideIn 0.3s ease forwards; }
+
+  /* ── Mobile */
+  @media (max-width: 700px) {
+    .main { flex-direction: column; overflow-y: auto; }
+    .panel-left { flex: none; border-right: none; border-bottom: 1px solid var(--border); }
+    .panel-right { flex: none; }
+    .task-list { overflow: visible; }
+    .farm-name { display: none; }
+    .settings-panel { width: 100%; border-left: none; }
+    .add-bar { position: sticky; bottom: 0; z-index: 10; }
+    .clock { font-size: 14px; }
+    .tab { padding: 10px 10px; font-size: 10px; letter-spacing: 1px; }
+    .panel-title { font-size: 16px; }
+    .clock-wrap .date-label { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── Header ── -->
+<div class="header">
+  <div class="logo">
+    <img class="logo-img" id="logoImg" alt="Farm Logo">
+    <span class="logo-mark">FARMBOARD</span>
+    <span class="farm-name" id="farmNameDisplay"></span>
+  </div>
+  <div class="header-right">
+    <div class="clock-wrap">
+      <div class="clock" id="clock">--:--:--</div>
+      <div class="date-label" id="dateLabel">---</div>
+    </div>
+    <button class="icon-btn" onclick="toggleFS()" title="Fullscreen">&#x26F6;</button>
+    <button class="icon-btn" onclick="openSettings()" title="Settings">&#9881;</button>
+  </div>
+</div>
+
+<!-- ── Tabs ── -->
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('board')">&#11035; Board</button>
+  <button class="tab" onclick="switchTab('history')">&#128203; History</button>
+  <button class="tab" onclick="switchTab('inbox')">&#128241; Inbox</button>
+</div>
+
+<!-- ── Main content ── -->
+<div class="main">
+
+  <!-- Board -->
+  <div class="tv active" id="tab-board">
+    <div class="panel panel-left">
+      <div class="panel-header">
+        <span class="panel-title">ACTIVE JOBS</span>
+        <span class="badge badge-green" id="activeCount">0 OPEN</span>
+      </div>
+      <div class="task-list" id="activeList"></div>
+      <div class="add-bar">
+        <select class="sel" id="whoSel"></select>
+        <input class="inp" id="taskInp" placeholder="Add a task..." onkeydown="if(event.key==='Enter')addTask()">
+        <button class="pri-btn" id="priBtn" onclick="togglePriority()" title="Toggle priority">&#128308; PRI</button>
+        <button class="sim-btn" onclick="simSMS()">&#128241; SMS</button>
+        <button class="add-btn" onclick="addTask()">+ ADD</button>
+      </div>
+    </div>
+    <div class="panel panel-right">
+      <div class="panel-header">
+        <span class="panel-title">DONE TODAY</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <button class="archive-btn" id="archiveBtn" onclick="archiveCompleted()">ARCHIVE &#8595;</button>
+          <span class="badge badge-muted" id="doneCount">0 DONE</span>
+        </div>
+      </div>
+      <div class="task-list" id="doneList"></div>
+    </div>
+  </div>
+
+  <!-- History -->
+  <div class="tvf" id="tab-history">
+    <div class="sec-label" style="padding:10px 20px;">SAME WEEK IN PRIOR YEARS &mdash; TAP ANY TASK TO COPY TO TODAY</div>
+    <div id="historyContent"></div>
+  </div>
+
+  <!-- Inbox -->
+  <div class="tvf" id="tab-inbox">
+    <div class="sec-label" style="padding:10px 20px;">INCOMING MESSAGES &mdash; SMS &amp; TELEGRAM</div>
+    <div id="inboxList">
+      <div class="iitem"><div class="ihead"><span class="ifrom">Roger (+1 701-555-0182)</span><div class="imeta"><span class="ich">SMS</span><span class="itm">6:12 AM</span></div></div><div class="imsg">Check oil on the big John Deere before field work</div></div>
+      <div class="iitem"><div class="ihead"><span class="ifrom">Dave (+1 701-555-0197)</span><div class="imeta"><span class="ich">SMS</span><span class="itm">6:45 AM</span></div></div><div class="imsg">Call co-op about chemical delivery for Thursday &mdash; urgent</div></div>
+      <div class="iitem"><div class="ihead"><span class="ifrom">@mikefarm (Telegram)</span><div class="imeta"><span class="ich">TELEGRAM</span><span class="itm">7:03 AM</span></div></div><div class="imsg">Move grain cart from north bin to shop yard</div></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── Status bar ── -->
+<div class="statusbar">
+  <div class="si"><div class="sdot"></div>LIVE</div>
+  <div class="si">OPEN: <span class="snum" id="sOpen">0</span></div>
+  <div class="si">DONE: <span class="snum" id="sDone">0</span></div>
+  <div class="sfarm" id="statusFarm"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- ── Settings overlay ── -->
+<div class="scrim" id="scrim" onclick="closeSettings()"></div>
+<div class="settings-panel" id="settingsPanel">
+  <div class="set-head">
+    <span class="set-title">SETTINGS</span>
+    <button class="set-close" onclick="closeSettings()">&#10005;</button>
+  </div>
+  <div class="set-body">
+
+    <!-- Farm Identity -->
+    <div class="set-section">
+      <div class="set-section-label">FARM IDENTITY</div>
+      <div class="set-row">
+        <div class="set-field-label">FARM NAME</div>
+        <input class="set-inp" id="setFarmName" type="text" placeholder="Your Farm Name">
+      </div>
+      <div class="set-row">
+        <div class="set-field-label">FARM LOGO</div>
+        <div class="logo-upload-area" onclick="document.getElementById('logoFileInput').click()">
+          <img id="logoPreviewImg" class="logo-preview-img" alt="Logo preview">
+          <div class="logo-upload-hint" id="logoUploadHint">+ CLICK TO UPLOAD LOGO<br><span style="font-size:10px;color:var(--text-muted);">PNG, JPG &mdash; MAX 500KB</span></div>
+          <button class="logo-remove-btn" id="logoRemoveBtn" onclick="removeLogo(event)">&#10005; REMOVE LOGO</button>
+        </div>
+        <input type="file" id="logoFileInput" accept="image/*" style="display:none" onchange="handleLogoUpload(event)">
+      </div>
+    </div>
+
+    <!-- Farm Hands -->
+    <div class="set-section">
+      <div class="set-section-label">FARM HANDS</div>
+      <ul class="hand-list" id="handList"></ul>
+      <div class="hand-add-row">
+        <input class="set-inp" id="newHandInp" type="text" placeholder="Add a name..." style="flex:1;" onkeydown="if(event.key==='Enter')addHand()">
+        <button class="add-btn" onclick="addHand()">+ ADD</button>
+      </div>
+    </div>
+
+    <!-- Save / Reset -->
+    <div class="set-section">
+      <div class="set-section-label">ACTIONS</div>
+      <button class="set-save-btn" onclick="saveSettings()">SAVE SETTINGS</button>
+      <button class="set-danger-btn" onclick="confirmReset()">RESET ALL DATA</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ─────────────────────────────────────────
+// Utility
+// ─────────────────────────────────────────
+function genId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+}
+
+function nowISO() {
+  return new Date().toISOString();
+}
+
+function fmtTime(iso) {
+  return new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+}
+
+function esc(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+// ISO week number and calendar year for a date
+function isoWeek(dateInput) {
+  const d = new Date(dateInput);
+  const dt = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const day = dt.getUTCDay() || 7;
+  dt.setUTCDate(dt.getUTCDate() + 4 - day);
+  const yearStart = new Date(Date.UTC(dt.getUTCFullYear(), 0, 1));
+  return {
+    week: Math.ceil(((dt - yearStart) / 86400000 + 1) / 7),
+    year: d.getFullYear(),
+  };
+}
+
+// "MAY 6–12" style date range for an ISO week in a given year
+function weekDateRange(weekNum, year) {
+  const jan4 = new Date(Date.UTC(year, 0, 4));
+  const w1mon = new Date(jan4);
+  w1mon.setUTCDate(jan4.getUTCDate() - (jan4.getUTCDay() || 7) + 1);
+  const monday = new Date(w1mon);
+  monday.setUTCDate(w1mon.getUTCDate() + (weekNum - 1) * 7);
+  const sunday = new Date(monday);
+  sunday.setUTCDate(monday.getUTCDate() + 6);
+  const fmt = d => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' }).toUpperCase();
+  return fmt(monday) + '\u2013' + fmt(sunday);
+}
+
+// ─────────────────────────────────────────
+// Storage
+// ─────────────────────────────────────────
+const KEYS = { settings: 'fb_settings', tasks: 'fb_tasks', archived: 'fb_archived' };
+
+const DEFAULT_SETTINGS = {
+  farm_name: 'Burke Family Farm',
+  farm_hands: ['Roger', 'Dave', 'Mike'],
+  logo_data: null,
+};
+
+// Demo tasks seeded on first load so the board isn't empty
+function makeDemoTasks() {
+  const offsets = [
+    { h: 6, m: 12, text: 'Check oil on the big John Deere before field work', who: 'Roger', src: 'TEXT', pri: false },
+    { h: 6, m: 45, text: 'Call co-op about chemical delivery for Thursday \u2014 urgent', who: 'Dave', src: 'TEXT', pri: true },
+    { h: 7, m: 3,  text: 'Move grain cart from north bin to shop yard', who: 'Mike', src: 'TELEGRAM', pri: false },
+    { h: 7, m: 31, text: 'Replace right rear marker light on the planter', who: 'Roger', src: 'TEXT', pri: false },
+    { h: 8, m: 15, text: 'Check tire pressure on all the grain wagons', who: 'Dave', src: 'TELEGRAM', pri: false },
+  ];
+  const today = new Date();
+  return offsets.map(o => {
+    const dt = new Date(today);
+    dt.setHours(o.h, o.m, 0, 0);
+    return {
+      id: genId(),
+      text: o.text,
+      sender_name: o.who,
+      source: o.src,
+      created_at: dt.toISOString(),
+      completed_at: null,
+      archived: false,
+      priority: o.pri,
+      done: false,
+    };
+  });
+}
+
+// Demo archived history — ISO week 19 in 2024 and 2023 (same week as May 5, 2026)
+function makeDemoArchived() {
+  return [
+    // 2024: week 19 = May 6–12
+    { id: 'h24a', text: 'Grease all planter row units and check disc openers',          sender_name: 'Roger', source: 'TEXT',     created_at: '2024-05-06T08:12:00.000Z', completed_at: '2024-05-06T14:00:00.000Z', archived: true, priority: false },
+    { id: 'h24b', text: "Call Larson's about corn seed delivery for south fields",       sender_name: 'Dave',  source: 'TEXT',     created_at: '2024-05-06T07:44:00.000Z', completed_at: '2024-05-06T10:00:00.000Z', archived: true, priority: false },
+    { id: 'h24c', text: 'Check anhydrous tank levels before planting starts',            sender_name: 'Dave',  source: 'TEXT',     created_at: '2024-05-06T06:30:00.000Z', completed_at: '2024-05-06T09:00:00.000Z', archived: true, priority: false },
+    { id: 'h24d', text: 'Move grain cart to north bins \u2014 needs new tire',           sender_name: 'Mike',  source: 'TELEGRAM', created_at: '2024-05-06T14:15:00.000Z', completed_at: '2024-05-06T16:30:00.000Z', archived: true, priority: false },
+    // 2023: week 19 = May 8–14
+    { id: 'h23a', text: 'Calibrate planter meters \u2014 corn rate check in shop',       sender_name: 'Roger', source: 'TEXT',     created_at: '2023-05-08T07:00:00.000Z', completed_at: '2023-05-08T09:30:00.000Z', archived: true, priority: false },
+    { id: 'h23b', text: 'Bring 4WD tractor in from west shed, fuel and check fluids',   sender_name: 'Dave',  source: 'TEXT',     created_at: '2023-05-08T08:30:00.000Z', completed_at: '2023-05-08T11:00:00.000Z', archived: true, priority: false },
+    { id: 'h23c', text: 'Order replacement closing wheel springs from co-op',            sender_name: 'Roger', source: 'TEXT',     created_at: '2023-05-08T10:05:00.000Z', completed_at: '2023-05-08T10:30:00.000Z', archived: true, priority: false },
+    { id: 'h23d', text: 'Soil temp check \u2014 wait on beans, plant corn first',        sender_name: 'Roger', source: 'TEXT',     created_at: '2023-05-08T05:45:00.000Z', completed_at: '2023-05-08T06:30:00.000Z', archived: true, priority: false },
+    { id: 'h23e', text: 'Haul off last of winter wheat \u2014 elevator appointment 1pm',sender_name: 'Dave',  source: 'TEXT',     created_at: '2023-05-08T09:00:00.000Z', completed_at: '2023-05-08T14:30:00.000Z', archived: true, priority: false },
+  ];
+}
+
+function loadSettings() {
+  try {
+    const s = JSON.parse(localStorage.getItem(KEYS.settings));
+    return s ? Object.assign({}, DEFAULT_SETTINGS, s) : Object.assign({}, DEFAULT_SETTINGS);
+  } catch { return Object.assign({}, DEFAULT_SETTINGS); }
+}
+
+function persistSettings() {
+  localStorage.setItem(KEYS.settings, JSON.stringify(settings));
+}
+
+function loadTasks() {
+  try {
+    const t = JSON.parse(localStorage.getItem(KEYS.tasks));
+    if (Array.isArray(t) && t.length) return t;
+  } catch { /* fall through */ }
+  const demo = makeDemoTasks();
+  localStorage.setItem(KEYS.tasks, JSON.stringify(demo));
+  return demo;
+}
+
+function saveTasks() {
+  localStorage.setItem(KEYS.tasks, JSON.stringify(tasks));
+}
+
+function loadArchived() {
+  try {
+    const a = JSON.parse(localStorage.getItem(KEYS.archived));
+    if (Array.isArray(a) && a.length) return a;
+  } catch { /* fall through */ }
+  const demo = makeDemoArchived();
+  localStorage.setItem(KEYS.archived, JSON.stringify(demo));
+  return demo;
+}
+
+function saveArchived() {
+  localStorage.setItem(KEYS.archived, JSON.stringify(archived));
+}
+
+// ─────────────────────────────────────────
+// App state
+// ─────────────────────────────────────────
+let settings = loadSettings();
+let tasks    = loadTasks();
+let archived = loadArchived();
+
+// Draft for settings panel (discarded if closed without saving)
+let draft = null;
+
+// Priority flag for next task to be added
+let nextPriority = false;
+
+// Cycled SMS simulations
+let simIdx = 0;
+const SIM_MSGS = [
+  'Need someone to pick up hydraulic fluid from town \u2014 we\'re low',
+  'Fence on the east pasture is down again, needs fixed today',
+  'Load up beans in bin 4 for pickup tomorrow morning at 7',
+  'Wire on the grain dryer is sparking \u2014 don\'t run it until fixed',
+  'Check the combine headers are still in the shed after the rain',
+  'Propane tank at the shop is getting low, call for delivery',
+];
+
+// Cache for history items so copyHistory can look up by index
+let historyCache = [];
+
+// ─────────────────────────────────────────
+// Clock
+// ─────────────────────────────────────────
+function tick() {
+  const n = new Date();
+  document.getElementById('clock').textContent = n.toLocaleTimeString('en-US', { hour12: false });
+  document.getElementById('dateLabel').textContent = n.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase();
+}
+tick();
+setInterval(tick, 1000);
+
+// ─────────────────────────────────────────
+// Board render
+// ─────────────────────────────────────────
+function render() {
+  const active = tasks
+    .filter(t => !t.done)
+    .sort((a, b) => (b.priority - a.priority) || (new Date(a.created_at) - new Date(b.created_at)));
+  const done = tasks.filter(t => t.done);
+
+  document.getElementById('activeCount').textContent = active.length + ' OPEN';
+  document.getElementById('doneCount').textContent   = done.length  + ' DONE';
+  document.getElementById('sOpen').textContent       = active.length;
+  document.getElementById('sDone').textContent       = done.length;
+
+  const archBtn = document.getElementById('archiveBtn');
+  archBtn.classList.toggle('visible', done.length > 0);
+
+  document.getElementById('activeList').innerHTML = active.length === 0
+    ? '<div class="empty-msg">ALL CAUGHT UP<br>NOTHING OPEN &#127881;</div>'
+    : active.map(taskHTML).join('');
+
+  document.getElementById('doneList').innerHTML = done.length === 0
+    ? '<div class="empty-msg">NOTHING COMPLETED YET</div>'
+    : done.map(taskHTML).join('');
+
+  // Clear animation flag after paint so re-renders don't re-animate
+  setTimeout(() => tasks.forEach(t => { t._new = false; }), 400);
+}
+
+function taskHTML(t) {
+  return '<div class="task-item' + (t.done ? ' done' : '') + (t._new ? ' new' : '') + '" onclick="toggleTask(\'' + t.id + '\')">'
+    + '<div class="pdot ' + (t.priority ? 'hi' : 'lo') + '"></div>'
+    + '<div class="cb"><span class="ck">&#10003;</span></div>'
+    + '<div class="task-body">'
+    + '<div class="task-text">' + esc(t.text) + '</div>'
+    + '<div class="meta">'
+    + '<span class="sender">' + esc(t.sender_name) + '</span>'
+    + '<span class="time">' + fmtTime(t.created_at) + '</span>'
+    + '<span class="src-tag">' + esc(t.source) + '</span>'
+    + '</div></div></div>';
+}
+
+// ─────────────────────────────────────────
+// History render
+// ─────────────────────────────────────────
+function renderHistory() {
+  const todayW = isoWeek(new Date());
+  historyCache = [];
+
+  // Archived tasks from same ISO week in prior years
+  const relevant = archived.filter(t => {
+    const w = isoWeek(t.created_at);
+    return w.week === todayW.week && w.year < todayW.year;
+  });
+
+  // Group by calendar year, most recent first
+  const byYear = {};
+  relevant.forEach(t => {
+    const yr = new Date(t.created_at).getFullYear();
+    if (!byYear[yr]) byYear[yr] = [];
+    byYear[yr].push(t);
+  });
+  const years = Object.keys(byYear).map(Number).sort((a, b) => b - a);
+
+  const el = document.getElementById('historyContent');
+
+  if (years.length === 0) {
+    el.innerHTML = '<div class="empty-msg">NO HISTORY YET<br><br>TASKS YOU ARCHIVE WILL APPEAR HERE<br>WHEN VIEWED IN FUTURE YEARS</div>';
+    return;
+  }
+
+  el.innerHTML = years.map(yr => {
+    const yTasks = byYear[yr];
+    const range  = weekDateRange(todayW.week, yr);
+    return '<div class="hgroup">'
+      + '<div class="hdate">' + range + ' <span class="yrbadge">' + yr + '</span></div>'
+      + yTasks.map(t => {
+          const idx = historyCache.push(t) - 1;
+          return '<div class="htask" onclick="copyHistory(' + idx + ')">'
+            + '<span class="hico">&#10003;</span>'
+            + '<span class="htxt">' + esc(t.text) + '</span>'
+            + '<span class="hmeta">' + esc(t.sender_name) + ' &middot; ' + fmtTime(t.created_at) + '</span>'
+            + '</div>';
+        }).join('')
+      + '</div>';
+  }).join('');
+}
+
+// ─────────────────────────────────────────
+// Task actions
+// ─────────────────────────────────────────
+function toggleTask(id) {
+  const t = tasks.find(x => x.id === id);
+  if (!t) return;
+  t.done = !t.done;
+  t.completed_at = t.done ? nowISO() : null;
+  t._new = false;
+  saveTasks();
+  render();
+  showToast(t.done ? '&#10003; Checked off' : '&#8617; Reopened');
+}
+
+function addTask() {
+  const v = document.getElementById('taskInp').value.trim();
+  if (!v) return;
+  const who = document.getElementById('whoSel').value || 'Manual';
+  const task = {
+    id: genId(),
+    text: v,
+    sender_name: who,
+    source: 'MANUAL',
+    created_at: nowISO(),
+    completed_at: null,
+    archived: false,
+    priority: nextPriority,
+    done: false,
+    _new: true,
+  };
+  tasks.unshift(task);
+  document.getElementById('taskInp').value = '';
+  if (nextPriority) { nextPriority = false; updatePriBtn(); }
+  saveTasks();
+  render();
+  showToast('Task added');
+}
+
+function simSMS() {
+  const hands   = settings.farm_hands;
+  const msg     = SIM_MSGS[simIdx % SIM_MSGS.length]; simIdx++;
+  const sender  = hands[simIdx % hands.length] || hands[0] || 'Farm Hand';
+  const iso     = nowISO();
+
+  // Prepend to inbox
+  const il  = document.getElementById('inboxList');
+  const div = document.createElement('div');
+  div.className = 'iitem new';
+  div.innerHTML = '<div class="ihead"><span class="ifrom">' + esc(sender) + ' (SMS)</span>'
+    + '<div class="imeta"><span class="ich">SMS</span><span class="itm">' + fmtTime(iso) + '</span></div></div>'
+    + '<div class="imsg">' + esc(msg) + '</div>';
+  il.prepend(div);
+
+  tasks.unshift({
+    id: genId(), text: msg, sender_name: sender, source: 'TEXT',
+    created_at: iso, completed_at: null, archived: false, priority: false, done: false, _new: true,
+  });
+  saveTasks();
+  render();
+  showToast('&#128241; Incoming SMS from ' + sender);
+}
+
+function archiveCompleted() {
+  const done = tasks.filter(t => t.done);
+  if (!done.length) return;
+  done.forEach(t => { t.archived = true; archived.push(t); });
+  tasks = tasks.filter(t => !t.done);
+  saveTasks();
+  saveArchived();
+  render();
+  renderHistory();
+  showToast(done.length + ' task' + (done.length > 1 ? 's' : '') + ' archived to history');
+}
+
+function copyHistory(idx) {
+  const t = historyCache[idx];
+  if (!t) return;
+  tasks.unshift({
+    id: genId(), text: t.text, sender_name: t.sender_name, source: 'HISTORY',
+    created_at: nowISO(), completed_at: null, archived: false, priority: false, done: false, _new: true,
+  });
+  saveTasks();
+  switchTab('board');
+  render();
+  showToast('Copied to today\'s board');
+}
+
+// ─────────────────────────────────────────
+// Priority toggle
+// ─────────────────────────────────────────
+function togglePriority() {
+  nextPriority = !nextPriority;
+  updatePriBtn();
+}
+
+function updatePriBtn() {
+  document.getElementById('priBtn').classList.toggle('on', nextPriority);
+}
+
+// ─────────────────────────────────────────
+// Settings panel
+// ─────────────────────────────────────────
+function openSettings() {
+  draft = JSON.parse(JSON.stringify(settings)); // deep copy
+  populateForm();
+  document.getElementById('settingsPanel').classList.add('open');
+  document.getElementById('scrim').classList.add('open');
+}
+
+function closeSettings() {
+  draft = null;
+  document.getElementById('settingsPanel').classList.remove('open');
+  document.getElementById('scrim').classList.remove('open');
+}
+
+function populateForm() {
+  document.getElementById('setFarmName').value = draft.farm_name;
+  renderHandList();
+  updateLogoPreview();
+}
+
+function renderHandList() {
+  const ul = document.getElementById('handList');
+  if (!draft.farm_hands.length) { ul.innerHTML = ''; return; }
+  ul.innerHTML = draft.farm_hands.map((h, i) =>
+    '<li class="hand-item">'
+    + '<span class="hand-name">' + esc(h) + '</span>'
+    + '<button class="hand-rm" onclick="removeHand(' + i + ')" title="Remove">&#10005;</button>'
+    + '</li>'
+  ).join('');
+}
+
+function addHand() {
+  if (!draft) return;
+  const inp  = document.getElementById('newHandInp');
+  const name = inp.value.trim();
+  if (!name || draft.farm_hands.includes(name)) { inp.value = ''; return; }
+  draft.farm_hands.push(name);
+  inp.value = '';
+  renderHandList();
+}
+
+function removeHand(idx) {
+  if (!draft) return;
+  draft.farm_hands.splice(idx, 1);
+  renderHandList();
+}
+
+function saveSettings() {
+  if (!draft) return;
+  draft.farm_name = document.getElementById('setFarmName').value.trim() || 'My Farm';
+  settings = draft;
+  persistSettings();
+  applySettings();
+  closeSettings();
+  showToast('Settings saved');
+}
+
+function applySettings() {
+  document.getElementById('farmNameDisplay').textContent = settings.farm_name;
+  document.getElementById('statusFarm').textContent      = settings.farm_name.toUpperCase();
+
+  const img = document.getElementById('logoImg');
+  if (settings.logo_data) {
+    img.src = settings.logo_data;
+    img.style.display = 'block';
+  } else {
+    img.style.display = 'none';
+  }
+
+  updateWhoSelect();
+}
+
+function updateWhoSelect() {
+  const sel     = document.getElementById('whoSel');
+  const current = sel.value;
+  const hands   = settings.farm_hands.concat('Manual');
+  sel.innerHTML = hands.map(h => '<option>' + esc(h) + '</option>').join('');
+  if (hands.includes(current)) sel.value = current;
+}
+
+// ─────────────────────────────────────────
+// Logo upload
+// ─────────────────────────────────────────
+function handleLogoUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  if (file.size > 500 * 1024) { showToast('Logo must be under 500KB'); e.target.value = ''; return; }
+  const reader = new FileReader();
+  reader.onload = ev => {
+    draft.logo_data = ev.target.result;
+    updateLogoPreview();
+  };
+  reader.readAsDataURL(file);
+  e.target.value = '';
+}
+
+function removeLogo(e) {
+  e.stopPropagation();
+  if (!draft) return;
+  draft.logo_data = null;
+  updateLogoPreview();
+}
+
+function updateLogoPreview() {
+  const img    = document.getElementById('logoPreviewImg');
+  const hint   = document.getElementById('logoUploadHint');
+  const rmBtn  = document.getElementById('logoRemoveBtn');
+  if (draft && draft.logo_data) {
+    img.src          = draft.logo_data;
+    img.style.display = 'block';
+    hint.style.display = 'none';
+    rmBtn.style.display = 'block';
+  } else {
+    img.style.display  = 'none';
+    hint.style.display = 'block';
+    rmBtn.style.display = 'none';
+  }
+}
+
+// ─────────────────────────────────────────
+// Reset
+// ─────────────────────────────────────────
+function confirmReset() {
+  if (!confirm('Reset all tasks and settings? This cannot be undone.')) return;
+  Object.values(KEYS).forEach(k => localStorage.removeItem(k));
+  settings = loadSettings();
+  tasks    = loadTasks();
+  archived = loadArchived();
+  applySettings();
+  render();
+  renderHistory();
+  closeSettings();
+  showToast('Data reset');
+}
+
+// ─────────────────────────────────────────
+// Tab switching
+// ─────────────────────────────────────────
+function switchTab(name) {
+  const names = ['board', 'history', 'inbox'];
+  document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', names[i] === name));
+  document.querySelectorAll('.tv, .tvf').forEach(v => v.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  if (name === 'history') renderHistory();
+}
+
+// ─────────────────────────────────────────
+// Fullscreen
+// ─────────────────────────────────────────
+function toggleFS() {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen().catch(() => {});
+  } else {
+    document.exitFullscreen();
+  }
+}
+
+// ─────────────────────────────────────────
+// Toast
+// ─────────────────────────────────────────
+let toastTimer;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.innerHTML = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+// ─────────────────────────────────────────
+// Init
+// ─────────────────────────────────────────
+applySettings();
+render();
+renderHistory();
+</script>
+</body>
+</html>
