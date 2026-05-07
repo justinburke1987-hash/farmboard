@@ -530,7 +530,8 @@ async function submitAuth(){
     return;
   }
 
-  // Auth successful — onAuthStateChange will fire and handle the rest
+  // Auth successful — show loading while farm data loads
+  showView('loading');
 }
 
 async function signOut(){
@@ -597,7 +598,7 @@ async function loadFarm(){
     // First login — create farm, go to setup
     const {data:newFarm,error:ne} = await sb
       .from('farms').insert({owner_id:currentUser.id,name:'My Farm'}).select().single();
-    if(ne){ console.error(ne); return; }
+    if(ne){ showView('auth'); document.getElementById('authErr').textContent='Farm setup error: '+ne.message; return; }
     currentFarm = newFarm;
     showView('setup');
     return;
