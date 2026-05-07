@@ -595,7 +595,16 @@ async function completeSetup(){
 // DATA
 // ══════════════════════════════════════════
 async function forceSignOut(){
-  await sb.auth.signOut();
+  try {
+    // Try network sign out, but don't wait more than 2 seconds
+    await Promise.race([
+      sb.auth.signOut(),
+      new Promise((_,r) => setTimeout(() => r(new Error('timeout')), 2000))
+    ]);
+  } catch(e) {
+    // Network failed — manually wipe the local session so we're not stuck
+    localStorage.removeItem('sb-msrduyfwfdpsdrmymvui-auth-token');
+  }
   currentUser=null; currentFarm=null; tasks=[]; farmHands=[];
   showView('auth');
 }
