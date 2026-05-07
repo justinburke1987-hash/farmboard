@@ -198,15 +198,45 @@
 
   /* ── Mobile ── */
   @media(max-width:700px){
-    .main{flex-direction:column;overflow-y:auto;}
+    /* Let the whole page scroll naturally on mobile */
+    body{height:auto;min-height:100dvh;overflow:visible;}
+    #vApp{overflow:visible;}
+    .main{flex-direction:column;overflow:visible;flex:none;}
+    .panel{overflow:visible;}
     .panel-left{flex:none;border-right:none;border-bottom:1px solid var(--border);}
-    .panel-right{flex:none;}
+    .panel-right{flex:none;padding-bottom:120px;} /* leave room for fixed add bar */
     .task-list{overflow:visible;max-height:none;}
     .farm-name-display{display:none;}
     .settings-overlay{width:100%;border-left:none;}
-    .add-bar{position:sticky;bottom:0;z-index:10;}
+
+    /* Stick the add bar to the viewport bottom so the ADD button is always tappable */
+    .add-bar{
+      position:fixed;
+      left:0; right:0; bottom:0;
+      z-index:100;
+      border-top:2px solid var(--border);
+      background:var(--surface);
+      flex-wrap:wrap;
+      gap:6px;
+      padding:8px 10px;
+      box-shadow:0 -4px 18px rgba(0,0,0,0.4);
+    }
+    /* Row 1: who | priority */
+    .add-bar .sel{flex:1 1 65%;order:1;}
+    .add-bar .btn-pri{flex:0 0 auto;order:2;}
+    .add-bar .btn-sim{display:none;} /* hide SMS demo button on mobile */
+    /* Row 2: input | ADD */
+    .add-bar .add-inp{flex:1 1 60%;order:3;font-size:16px;} /* 16px = no iOS zoom on focus */
+    .add-bar .btn-add{flex:0 0 auto;order:4;padding:10px 16px;}
+
+    /* Hide status bar on mobile — counts already shown in panel header badges */
+    .statusbar{display:none;}
+
     .clock{font-size:14px;}
+    .date-label{font-size:9px;}
     .tab{padding:10px;font-size:10px;letter-spacing:1px;}
+    .header{height:52px;padding:0 12px 0 14px;}
+    .logo-mark{font-size:24px;}
   }
 </style>
 </head>
