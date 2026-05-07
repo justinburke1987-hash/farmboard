@@ -493,19 +493,18 @@ function tick(){
 tick(); setInterval(tick,1000);
 
 // ── View management
+function cap(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
 function showView(name){
+  const target = 'v' + cap(name);
   ['vLoading','vAuth','vSetup','vApp'].forEach(id=>{
     const el = document.getElementById(id);
     if(!el) return;
-    if(id === 'vLoading' || id === 'vAuth' || id === 'vSetup'){
-      el.style.display = (id==='v'+cap(name)) ? 'flex' : 'none';
-    } else {
-      el.style.display = (id==='v'+cap(name)) ? 'flex' : 'none';
-      el.style.flexDirection = (id==='v'+cap(name)) ? 'column' : '';
-    }
+    const show = (id === target);
+    el.style.setProperty('display', show ? 'flex' : 'none', 'important');
+    if(id === 'vApp' && show) el.style.flexDirection = 'column';
   });
+  if(typeof dbg==='function') dbg('showView('+name+') applied — '+target+' visible', 'var(--text-muted)');
 }
-function cap(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
 
 // ══════════════════════════════════════════
 // AUTH
