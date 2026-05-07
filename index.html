@@ -27,16 +27,8 @@
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
-
   html { scroll-behavior: smooth; }
-
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--sans);
-    line-height: 1.6;
-    overflow-x: hidden;
-  }
+  body { background: var(--bg); color: var(--text); font-family: var(--sans); line-height: 1.6; overflow-x: hidden; }
 
   /* ── Utility ── */
   .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
@@ -61,10 +53,7 @@
   .nav-cta:hover { opacity: 0.85; }
 
   /* ── Hero ── */
-  .hero {
-    padding: 140px 0 80px;
-    display: flex; align-items: center;
-  }
+  .hero { padding: 140px 0 80px; display: flex; align-items: center; }
   .hero .container { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; }
   .hero-eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: 4px; color: var(--green); text-transform: uppercase; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; }
   .hero-eyebrow::before { content: ''; width: 24px; height: 2px; background: var(--green); display: inline-block; }
@@ -72,11 +61,7 @@
   .hero-headline span { color: var(--green); }
   .hero-sub { font-size: 18px; color: var(--text-dim); line-height: 1.65; margin-bottom: 36px; max-width: 480px; }
   .hero-form { display: flex; gap: 10px; flex-wrap: wrap; }
-  .hero-input {
-    flex: 1; min-width: 200px;
-    background: var(--surface2); border: 1px solid var(--border); border-radius: 4px;
-    padding: 13px 16px; font-family: var(--sans); font-size: 15px; color: var(--text); outline: none;
-  }
+  .hero-input { flex: 1; min-width: 200px; background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 13px 16px; font-family: var(--sans); font-size: 15px; color: var(--text); outline: none; }
   .hero-input:focus { border-color: var(--green-dim); }
   .hero-input::placeholder { color: var(--text-muted); }
   .hero-btn { background: var(--green); color: #0f110e; border: none; border-radius: 4px; padding: 13px 28px; font-family: var(--mono); font-size: 13px; font-weight: 600; letter-spacing: 1px; cursor: pointer; white-space: nowrap; transition: opacity 0.15s; }
@@ -85,14 +70,7 @@
 
   /* ── App mockup ── */
   .mockup-wrap { position: relative; }
-  .mockup {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    overflow: hidden;
-    box-shadow: 0 24px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(126,200,80,0.08);
-    font-size: 12px;
-  }
+  .mockup { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; box-shadow: 0 24px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(126,200,80,0.08); font-size: 12px; }
   .mk-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: var(--surface); border-bottom: 1px solid var(--border); }
   .mk-logo { font-family: var(--display); font-size: 16px; color: var(--green); letter-spacing: 2px; }
   .mk-clock { font-family: var(--mono); font-size: 11px; color: var(--text-dim); }
@@ -134,12 +112,7 @@
   .mk-snum { color: var(--green); font-weight: 600; }
 
   /* ── Trust bar ── */
-  .trust-bar {
-    border-top: 1px solid var(--border);
-    border-bottom: 1px solid var(--border);
-    padding: 20px 0;
-    background: var(--surface);
-  }
+  .trust-bar { border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 20px 0; background: var(--surface); }
   .trust-bar .container { display: flex; align-items: center; gap: 40px; flex-wrap: wrap; justify-content: center; }
   .trust-item { font-family: var(--mono); font-size: 11px; color: var(--text-muted); letter-spacing: 2px; display: flex; align-items: center; gap: 8px; }
   .trust-item::before { content: '▸'; color: var(--green); }
@@ -156,36 +129,18 @@
   .problem-list { list-style: none; margin-top: 32px; display: flex; flex-direction: column; gap: 16px; }
   .problem-list li { display: flex; align-items: flex-start; gap: 12px; font-size: 16px; color: var(--text-dim); }
   .problem-list li::before { content: '—'; color: var(--red); font-family: var(--mono); flex-shrink: 0; margin-top: 2px; }
-  .whiteboard-box {
-    border: 1px solid var(--border); border-radius: 6px;
-    background: var(--surface2); padding: 28px;
-    font-family: var(--mono); font-size: 13px; color: var(--text-muted);
-    line-height: 2; position: relative; overflow: hidden;
-  }
-  .whiteboard-box::before {
-    content: 'SHOP WHITEBOARD';
-    font-size: 9px; letter-spacing: 3px; color: var(--text-muted);
-    display: block; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 10px;
-  }
+  .whiteboard-box { border: 1px solid var(--border); border-radius: 6px; background: var(--surface2); padding: 28px; font-family: var(--mono); font-size: 13px; color: var(--text-muted); line-height: 2; position: relative; overflow: hidden; }
+  .whiteboard-box::before { content: 'SHOP WHITEBOARD'; font-size: 9px; letter-spacing: 3px; color: var(--text-muted); display: block; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
   .wb-line { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
   .wb-box { width: 12px; height: 12px; border: 1.5px solid var(--text-muted); border-radius: 2px; flex-shrink: 0; }
   .wb-box.x { background: var(--text-muted); }
   .wb-strike { text-decoration: line-through; opacity: 0.5; }
-  .wb-smear {
-    position: absolute; inset: 0;
-    background: linear-gradient(135deg, transparent 60%, rgba(30,36,27,0.8));
-    pointer-events: none;
-  }
+  .wb-smear { position: absolute; inset: 0; background: linear-gradient(135deg, transparent 60%, rgba(30,36,27,0.8)); pointer-events: none; }
   .vs-arrow { text-align: center; font-family: var(--display); font-size: 28px; color: var(--border); margin: 0 -40px; }
 
   /* ── How it works ── */
-  .how { }
   .how-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; margin-top: 56px; }
-  .how-step {
-    background: var(--surface); border: 1px solid var(--border);
-    padding: 36px 32px; position: relative; overflow: hidden;
-    transition: border-color 0.2s;
-  }
+  .how-step { background: var(--surface); border: 1px solid var(--border); padding: 36px 32px; position: relative; overflow: hidden; transition: border-color 0.2s; }
   .how-step:hover { border-color: var(--green-dim); }
   .step-num { font-family: var(--display); font-size: 72px; color: var(--border); line-height: 1; margin-bottom: 24px; transition: color 0.2s; }
   .how-step:hover .step-num { color: var(--green-dim); }
@@ -201,55 +156,15 @@
   .feat-title { font-family: var(--mono); font-size: 12px; letter-spacing: 2px; color: var(--green); margin-bottom: 10px; text-transform: uppercase; }
   .feat-desc { font-size: 14px; color: var(--text-dim); line-height: 1.65; }
 
-  /* ── History feature callout ── */
-  .history-callout {
-    margin-top: 56px;
-    background: linear-gradient(135deg, var(--surface2), var(--surface));
-    border: 1px solid var(--border);
-    border-left: 3px solid var(--amber);
-    border-radius: 4px;
-    padding: 28px 32px;
-    display: flex; gap: 24px; align-items: flex-start;
-  }
+  /* ── History callout ── */
+  .history-callout { margin-top: 56px; background: linear-gradient(135deg, var(--surface2), var(--surface)); border: 1px solid var(--border); border-left: 3px solid var(--amber); border-radius: 4px; padding: 28px 32px; display: flex; gap: 24px; align-items: flex-start; }
   .history-callout-icon { font-size: 28px; flex-shrink: 0; }
   .history-callout-label { font-family: var(--mono); font-size: 10px; letter-spacing: 3px; color: var(--amber); margin-bottom: 8px; }
   .history-callout-title { font-family: var(--display); font-size: 22px; letter-spacing: 2px; margin-bottom: 8px; }
   .history-callout-desc { font-size: 15px; color: var(--text-dim); line-height: 1.65; }
 
-  /* ── Pricing ── */
-  .pricing { }
-  .pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; margin-top: 56px; }
-  .price-card {
-    background: var(--surface); border: 1px solid var(--border);
-    padding: 36px 32px; position: relative; transition: border-color 0.2s;
-  }
-  .price-card.featured {
-    border-color: var(--green-dim);
-    background: linear-gradient(180deg, rgba(74,122,46,0.08) 0%, var(--surface) 100%);
-  }
-  .price-card.featured::before {
-    content: 'MOST POPULAR';
-    position: absolute; top: -1px; left: 50%; transform: translateX(-50%);
-    background: var(--green); color: #0f110e;
-    font-family: var(--mono); font-size: 9px; font-weight: 600; letter-spacing: 2px;
-    padding: 4px 12px; border-radius: 0 0 4px 4px;
-  }
-  .price-tier { font-family: var(--mono); font-size: 10px; letter-spacing: 3px; color: var(--text-muted); margin-bottom: 16px; }
-  .price-amount { font-family: var(--display); font-size: 56px; letter-spacing: 1px; line-height: 1; margin-bottom: 4px; }
-  .price-amount span { font-family: var(--mono); font-size: 16px; color: var(--text-dim); vertical-align: top; margin-top: 12px; display: inline-block; }
-  .price-per { font-family: var(--mono); font-size: 11px; color: var(--text-muted); margin-bottom: 28px; }
-  .price-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
-  .price-list li { font-size: 14px; color: var(--text-dim); display: flex; align-items: flex-start; gap: 10px; }
-  .price-list li::before { content: '✓'; color: var(--green); font-family: var(--mono); flex-shrink: 0; }
-  .price-note { font-family: var(--mono); font-size: 10px; color: var(--text-muted); margin-top: 24px; letter-spacing: 1px; }
-
   /* ── Waitlist CTA ── */
-  .waitlist {
-    background: var(--surface);
-    border-top: 1px solid var(--border);
-    text-align: center;
-    padding: 96px 0;
-  }
+  .waitlist { background: var(--surface); border-top: 1px solid var(--border); text-align: center; padding: 96px 0; }
   .waitlist .section-headline { margin: 16px auto 20px; }
   .waitlist .section-sub { margin: 0 auto 40px; text-align: center; }
   .waitlist-form { display: flex; gap: 10px; max-width: 480px; margin: 0 auto; flex-wrap: wrap; justify-content: center; }
@@ -261,10 +176,7 @@
   .waitlist-reward { font-family: var(--mono); font-size: 11px; color: var(--amber); margin-top: 14px; letter-spacing: 1px; }
 
   /* ── Footer ── */
-  footer {
-    border-top: 1px solid var(--border);
-    padding: 32px 0;
-  }
+  footer { border-top: 1px solid var(--border); padding: 32px 0; }
   footer .container { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
   .footer-logo { font-family: var(--display); font-size: 20px; color: var(--green); letter-spacing: 2px; }
   .footer-copy { font-family: var(--mono); font-size: 11px; color: var(--text-muted); letter-spacing: 1px; }
@@ -282,10 +194,8 @@
     .problem .container { grid-template-columns: 1fr; gap: 40px; }
     .how-steps { grid-template-columns: 1fr; }
     .features-grid { grid-template-columns: 1fr 1fr; }
-    .pricing-grid { grid-template-columns: 1fr; max-width: 420px; }
     .vs-arrow { display: none; }
   }
-
   @media (max-width: 600px) {
     .features-grid { grid-template-columns: 1fr; }
     section { padding: 64px 0; }
@@ -318,17 +228,15 @@
         <input class="hero-input" type="email" name="email" placeholder="your@email.com" required>
         <button class="hero-btn" type="submit">JOIN WAITLIST</button>
       </form>
-      <div class="hero-note">&#9651; EARLY ACCESS &mdash; NO CREDIT CARD REQUIRED</div>
+      <div class="hero-note" id="heroNote">&#9651; EARLY ACCESS &mdash; NO CREDIT CARD REQUIRED</div>
+      <div class="thankyou-msg" id="heroThankYou">&#10003; YOU'RE ON THE LIST &mdash; WE'LL BE IN TOUCH BEFORE LAUNCH.</div>
     </div>
 
     <!-- App mockup -->
     <div class="mockup-wrap">
       <div class="mockup">
         <div class="mk-header">
-          <div style="display:flex;align-items:center;gap:8px;">
-            <span class="mk-logo">FARMBOARD</span>
-            <span style="font-family:var(--mono);font-size:8px;color:var(--text-muted);letter-spacing:1px;">BURKE FAMILY FARM</span>
-          </div>
+          <span class="mk-logo">FARMBOARD</span>
           <span class="mk-clock">07:31:04</span>
         </div>
         <div class="mk-tabs">
@@ -415,10 +323,9 @@
       <div class="wb-line"><div class="wb-box"></div><span>grain cart north bin</span></div>
       <div class="wb-line"><div class="wb-box"></div><span>??? who had the JD</span></div>
       <div class="wb-line"><div class="wb-box x"></div><span class="wb-strike">tire - wagon #3</span></div>
-      <div class="wb-line"><div class="wb-box"></div><span style="opacity:0.4;">⟵ what does this say</span></div>
+      <div class="wb-line"><div class="wb-box"></div><span style="opacity:0.4;">&#8592; what does this say</span></div>
       <div class="wb-smear"></div>
     </div>
-
     <div>
       <div class="section-label">The Problem</div>
       <h2 class="section-headline">The whiteboard works &mdash;<br><span class="green">until it doesn't.</span></h2>
@@ -470,7 +377,7 @@
     <div class="features-grid">
       <div class="feat-card">
         <span class="feat-icon">&#128241;</span>
-        <div class="feat-title">SMS & Telegram In</div>
+        <div class="feat-title">SMS &amp; Telegram In</div>
         <p class="feat-desc">Tasks come in via text or Telegram. Only trusted numbers on your allowlist can add tasks — no spam, no strangers.</p>
       </div>
       <div class="feat-card">
@@ -499,8 +406,6 @@
         <p class="feat-desc">No refreshing. When a task comes in or gets checked off, every screen on the farm updates instantly via live data subscriptions.</p>
       </div>
     </div>
-
-    <!-- History callout -->
     <div class="history-callout">
       <div class="history-callout-icon">&#128197;</div>
       <div>
@@ -522,7 +427,7 @@
       <input type="email" name="email" placeholder="your@email.com" required>
       <button type="submit">JOIN WAITLIST</button>
     </form>
-    <div class="waitlist-reward">&#9651; EARLY ACCESS &mdash; BE FIRST TO KNOW WHEN WE LAUNCH</div>
+    <div class="waitlist-reward" id="waitlistReward">&#9651; EARLY ACCESS &mdash; BE FIRST TO KNOW WHEN WE LAUNCH</div>
     <div class="thankyou-msg" id="thankYouMsg">&#10003; YOU'RE ON THE LIST &mdash; WE'LL BE IN TOUCH BEFORE LAUNCH.</div>
   </div>
 </section>
@@ -537,47 +442,67 @@
 </footer>
 
 <script>
-  // ── Waitlist form handler ──
-  // To activate: create a free account at formspree.io, create a form,
-  // and replace YOUR_FORM_ID below with your unique form ID.
   const FORMSPREE_ID = 'xeenkdvq';
 
   function handleSignup(e, formId) {
     e.preventDefault();
-    const form = document.getElementById(formId);
+    const form  = document.getElementById(formId);
     const email = form.querySelector('input[type="email"]').value.trim();
+    const btn   = form.querySelector('button[type="submit"]');
     if (!email) return;
 
-    if (FORMSPREE_ID === 'YOUR_FORM_ID') {
-      // Dev mode: just show thank you
-      showThankYou(form);
-      return;
-    }
+    // Show loading state so user knows it's working
+    btn.textContent = 'SENDING...';
+    btn.disabled = true;
+    btn.style.opacity = '0.6';
 
     fetch('https://formspree.io/f/' + FORMSPREE_ID, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-      body: JSON.stringify({ email: email }),
+      body: JSON.stringify({ email }),
     })
     .then(r => {
-      if (r.ok) showThankYou(form);
-      else alert('Something went wrong. Please try again.');
+      if (r.ok) {
+        showThankYou(formId);
+      } else {
+        resetBtn(btn);
+        showError(form, 'Something went wrong — please try again.');
+      }
     })
-    .catch(() => alert('Something went wrong. Please try again.'));
+    .catch(() => {
+      resetBtn(btn);
+      showError(form, 'Connection error — please try again.');
+    });
   }
 
-  function showThankYou(form) {
+  function showThankYou(formId) {
+    const form = document.getElementById(formId);
     form.style.display = 'none';
-    // Show whichever thank-you element is nearest
-    const nearby = form.parentElement.querySelector('.thankyou-msg, .waitlist-reward');
-    if (nearby) {
-      nearby.style.display = 'none'; // hide the reward line if present
+    if (formId === 'heroForm') {
+      document.getElementById('heroNote').style.display = 'none';
+      document.getElementById('heroThankYou').classList.add('show');
+    } else {
+      const reward = document.getElementById('waitlistReward');
+      if (reward) reward.style.display = 'none';
+      document.getElementById('thankYouMsg').classList.add('show');
     }
-    document.getElementById('thankYouMsg').classList.add('show');
+  }
 
-    // Also replace hero note if signup was from hero
-    const heroNote = document.querySelector('.hero-note');
-    if (heroNote) heroNote.textContent = '\u2713 You\'re on the list \u2014 we\'ll reach out before launch.';
+  function resetBtn(btn) {
+    btn.textContent = 'JOIN WAITLIST';
+    btn.disabled = false;
+    btn.style.opacity = '1';
+  }
+
+  function showError(form, msg) {
+    let err = form.parentElement.querySelector('.form-error');
+    if (!err) {
+      err = document.createElement('div');
+      err.className = 'form-error';
+      err.style.cssText = 'font-family:var(--mono);font-size:11px;color:var(--red);margin-top:10px;letter-spacing:1px;';
+      form.after(err);
+    }
+    err.textContent = msg;
   }
 </script>
 
