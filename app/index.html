@@ -29,14 +29,14 @@
   .icon-btn:hover{color:var(--text);border-color:var(--text-dim);}
 
   /* ── Loading screen ── */
-  #vLoading{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;}
+  #vLoading{flex:1;display:none;flex-direction:column;align-items:center;justify-content:center;gap:20px;}
   .load-logo{font-family:var(--display);font-size:42px;color:var(--green);letter-spacing:4px;}
   .load-bar{width:160px;height:2px;background:var(--border);border-radius:2px;overflow:hidden;}
   .load-fill{height:100%;background:var(--green);animation:loadfill 1.4s ease-in-out infinite;}
   @keyframes loadfill{0%{width:0%;margin-left:0}50%{width:80%}100%{width:0%;margin-left:100%}}
 
   /* ── Auth screen ── */
-  #vAuth{flex:1;display:none;align-items:center;justify-content:center;padding:24px;}
+  #vAuth{flex:1;display:flex;align-items:center;justify-content:center;padding:24px;}
   .auth-card{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:40px 36px;width:100%;max-width:400px;}
   .auth-logo{font-family:var(--display);font-size:32px;color:var(--green);letter-spacing:3px;margin-bottom:6px;}
   .auth-sub{font-family:var(--mono);font-size:11px;color:var(--text-muted);letter-spacing:2px;margin-bottom:32px;}
@@ -227,7 +227,7 @@
 <!-- ══════════════════════════════════════ -->
 <!-- AUTH                                  -->
 <!-- ══════════════════════════════════════ -->
-<div id="vAuth" style="display:none;flex:1;align-items:center;justify-content:center;padding:24px;">
+<div id="vAuth">
   <div class="auth-card">
     <div class="auth-logo">FARMBOARD</div>
     <div class="auth-sub">FARM OPERATIONS BOARD</div>
@@ -1006,20 +1006,28 @@ function toast(msg){
 // ══════════════════════════════════════════
 // INIT
 // ══════════════════════════════════════════
+
+// Show auth immediately — don't wait for async
+showView('auth');
+
 sb.auth.onAuthStateChange(async(event,session)=>{
   if(session){
     currentUser = session.user;
+    showView('loading');
     await loadFarm();
   } else {
     showView('auth');
   }
 });
 
-// Check existing session on load
+// Also check for an existing session explicitly on load
 (async()=>{
   const {data:{session}} = await sb.auth.getSession();
-  if(!session) showView('auth');
-  // If session exists, onAuthStateChange fires and handles it
+  if(session){
+    // onAuthStateChange will fire — no action needed here
+  } else {
+    showView('auth');
+  }
 })();
 
 </script>
