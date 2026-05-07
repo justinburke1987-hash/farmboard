@@ -554,8 +554,9 @@ async function submitAuth(){
     return;
   }
 
-  // Auth successful — show loading while farm data loads
-  showView('loading');
+  // Auth successful — onAuthStateChange will fire and drive the next view.
+  // Do NOT call showView here, or it will race with loadFarm() and clobber
+  // the setup/app view it just navigated to.
 }
 
 async function signOut(){
