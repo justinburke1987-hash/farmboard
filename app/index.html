@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FarmBoard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#0f110e; --surface:#161a14; --surface2:#1e241b; --border:#2a3226;
+    --green:#7ec850; --green-dim:#4a7a2e;
+    --amber:#e8a030; --amber-dim:#7a5218; --red:#e05050;
+    --text:#d4dbc8; --text-dim:#7a8a6a; --text-muted:#4a5a3a;
+    --mono:'IBM Plex Mono',monospace; --sans:'IBM Plex Sans',sans-serif; --display:'Bebas Neue',sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);height:100dvh;overflow:hidden;display:flex;flex-direction:column;}
+
+  /* ── Shared inputs/buttons ── */
+  .inp{background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:11px 14px;font-family:var(--sans);font-size:14px;color:var(--text);outline:none;width:100%;}
+  .inp:focus{border-color:var(--green-dim);}
+  .inp::placeholder{color:var(--text-muted);}
+  .btn-green{background:var(--green);color:#0f110e;border:none;border-radius:4px;padding:12px 20px;font-family:var(--mono);font-size:13px;font-weight:600;letter-spacing:1px;cursor:pointer;width:100%;}
+  .btn-green:hover{opacity:0.88;}
+  .btn-ghost{background:transparent;border:1px solid var(--border);border-radius:4px;padding:10px 16px;font-family:var(--mono);font-size:12px;color:var(--text-dim);cursor:pointer;width:100%;}
+  .btn-ghost:hover{border-color:var(--text-dim);color:var(--text);}
+  .icon-btn{background:transparent;border:1px solid var(--border);border-radius:3px;color:var(--text-dim);cursor:pointer;font-size:14px;padding:5px 8px;line-height:1;}
+  .icon-btn:hover{color:var(--text);border-color:var(--text-dim);}
+
+  /* ── Loading screen ── */
+  #vLoading{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;}
+  .load-logo{font-family:var(--display);font-size:42px;color:var(--green);letter-spacing:4px;}
+  .load-bar{width:160px;height:2px;background:var(--border);border-radius:2px;overflow:hidden;}
+  .load-fill{height:100%;background:var(--green);animation:loadfill 1.4s ease-in-out infinite;}
+  @keyframes loadfill{0%{width:0%;margin-left:0}50%{width:80%}100%{width:0%;margin-left:100%}}
+
+  /* ── Auth screen ── */
+  #vAuth{flex:1;display:none;align-items:center;justify-content:center;padding:24px;}
+  .auth-card{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:40px 36px;width:100%;max-width:400px;}
+  .auth-logo{font-family:var(--display);font-size:32px;color:var(--green);letter-spacing:3px;margin-bottom:6px;}
+  .auth-sub{font-family:var(--mono);font-size:11px;color:var(--text-muted);letter-spacing:2px;margin-bottom:32px;}
+  .auth-title{font-family:var(--display);font-size:22px;letter-spacing:2px;margin-bottom:24px;}
+  .field{margin-bottom:14px;}
+  .field-label{font-family:var(--mono);font-size:10px;letter-spacing:2px;color:var(--text-dim);margin-bottom:6px;}
+  .auth-err{font-family:var(--mono);font-size:11px;color:var(--red);margin-top:12px;letter-spacing:1px;min-height:18px;}
+  .auth-toggle{font-family:var(--mono);font-size:11px;color:var(--text-muted);margin-top:16px;text-align:center;letter-spacing:1px;}
+  .auth-toggle span{color:var(--green);cursor:pointer;text-decoration:underline;}
+
+  /* ── Setup screen ── */
+  #vSetup{flex:1;display:none;align-items:center;justify-content:center;padding:24px;overflow-y:auto;}
+  .setup-card{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:40px 36px;width:100%;max-width:480px;}
+  .setup-logo{font-family:var(--display);font-size:28px;color:var(--green);letter-spacing:3px;margin-bottom:4px;}
+  .setup-headline{font-family:var(--display);font-size:22px;letter-spacing:2px;margin-bottom:6px;}
+  .setup-sub{font-family:var(--mono);font-size:11px;color:var(--text-muted);letter-spacing:1px;margin-bottom:28px;}
+  .setup-section-label{font-family:var(--mono);font-size:10px;letter-spacing:3px;color:var(--text-muted);margin-bottom:10px;margin-top:24px;}
+  .hand-row{display:flex;gap:8px;margin-bottom:8px;align-items:center;}
+  .hand-row .inp{flex:1;}
+  .hand-rm{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;padding:0 4px;flex-shrink:0;}
+  .hand-rm:hover{color:var(--red);}
+  .add-hand-btn{background:transparent;border:1px dashed var(--border);border-radius:4px;padding:9px;font-family:var(--mono);font-size:11px;color:var(--text-muted);cursor:pointer;width:100%;letter-spacing:1px;margin-top:4px;}
+  .add-hand-btn:hover{border-color:var(--green-dim);color:var(--green);}
+
+  /* ── App: header ── */
+  .header{display:flex;align-items:center;justify-content:space-between;padding:0 16px 0 20px;height:58px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;gap:12px;}
+  .logo{display:flex;align-items:center;gap:10px;min-width:0;}
+  .logo-img{height:36px;width:auto;max-width:80px;object-fit:contain;border-radius:2px;display:none;}
+  .logo-mark{font-family:var(--display);font-size:28px;color:var(--green);letter-spacing:2px;white-space:nowrap;}
+  .farm-name-display{font-family:var(--mono);font-size:11px;color:var(--text-dim);letter-spacing:2px;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .header-right{display:flex;align-items:center;gap:10px;flex-shrink:0;}
+  .clock{font-family:var(--mono);font-size:18px;color:var(--text-dim);letter-spacing:2px;}
+  .date-label{font-family:var(--mono);font-size:10px;color:var(--text-muted);letter-spacing:1px;text-align:right;}
+
+  /* ── App: tabs ── */
+  .tabs{display:flex;background:var(--surface);border-bottom:1px solid var(--border);padding:0 20px;flex-shrink:0;}
+  .tab{font-family:var(--mono);font-size:11px;letter-spacing:2px;text-transform:uppercase;padding:11px 16px;border:none;background:transparent;color:var(--text-muted);cursor:pointer;border-bottom:2px solid transparent;}
+  .tab.active{color:var(--green);border-bottom-color:var(--green);}
+
+  /* ── App: main panels ── */
+  .main{display:flex;flex:1;overflow:hidden;}
+  .panel{display:flex;flex-direction:column;overflow:hidden;}
+  .panel-left{flex:1;border-right:1px solid var(--border);}
+  .panel-right{flex:0.8;}
+  .panel-header{display:flex;align-items:center;justify-content:space-between;padding:10px 16px 10px 20px;border-bottom:1px solid var(--border);flex-shrink:0;gap:8px;}
+  .panel-title{font-family:var(--display);font-size:19px;letter-spacing:3px;}
+  .badge{font-family:var(--mono);font-size:11px;padding:3px 10px;border-radius:2px;letter-spacing:1px;}
+  .badge-green{background:var(--green-dim);color:var(--green);}
+  .badge-muted{background:var(--surface2);color:var(--text-muted);}
+  .archive-btn{font-family:var(--mono);font-size:10px;letter-spacing:1px;padding:4px 8px;background:transparent;border:1px solid var(--border);border-radius:2px;color:var(--text-muted);cursor:pointer;display:none;}
+  .archive-btn:hover{color:var(--amber);border-color:var(--amber-dim);}
+  .archive-btn.visible{display:block;}
+
+  /* ── Task list ── */
+  .task-list{flex:1;overflow-y:auto;}
+  .task-list::-webkit-scrollbar{width:3px;}
+  .task-list::-webkit-scrollbar-thumb{background:var(--border);}
+  .task-item{display:flex;align-items:flex-start;gap:12px;padding:13px 20px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.12s;}
+  .task-item:hover{background:var(--surface2);}
+  .task-item.done{opacity:0.45;}
+  .task-item.done .task-text{text-decoration:line-through;color:var(--text-muted);}
+  .cb{width:22px;height:22px;border:2px solid var(--border);border-radius:3px;flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;}
+  .task-item.done .cb{background:var(--green-dim);border-color:var(--green-dim);}
+  .ck{color:var(--green);font-size:13px;display:none;}
+  .task-item.done .ck{display:block;}
+  .task-body{flex:1;min-width:0;}
+  .task-text{font-size:15px;font-weight:500;line-height:1.35;margin-bottom:5px;word-break:break-word;}
+  .meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .sender{font-family:var(--mono);font-size:11px;color:var(--green);letter-spacing:1px;}
+  .time{font-family:var(--mono);font-size:11px;color:var(--text-muted);}
+  .src{font-family:var(--mono);font-size:10px;color:var(--text-muted);background:var(--surface2);padding:1px 6px;border-radius:2px;}
+  .pdot{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:9px;}
+  .pdot.hi{background:var(--red);box-shadow:0 0 5px var(--red);}
+  .pdot.lo{background:transparent;}
+  .empty{padding:40px 20px;text-align:center;font-family:var(--mono);font-size:11px;color:var(--text-muted);letter-spacing:2px;line-height:1.8;}
+
+  /* ── Add bar ── */
+  .add-bar{border-top:1px solid var(--border);padding:10px 14px;display:flex;gap:8px;background:var(--surface);flex-shrink:0;flex-wrap:wrap;}
+  .sel{background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:8px 10px;font-family:var(--mono);font-size:11px;color:var(--text-dim);outline:none;}
+  .add-inp{flex:1;min-width:120px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:9px 12px;font-family:var(--sans);font-size:14px;color:var(--text);outline:none;}
+  .add-inp:focus{border-color:var(--green-dim);}
+  .add-inp::placeholder{color:var(--text-muted);}
+  .btn-add{background:var(--green);color:#0f110e;border:none;border-radius:4px;padding:9px 14px;font-family:var(--mono);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;}
+  .btn-sim{background:var(--amber-dim);color:var(--amber);border:1px solid var(--amber-dim);border-radius:4px;padding:9px 10px;font-family:var(--mono);font-size:11px;cursor:pointer;white-space:nowrap;}
+  .btn-pri{background:transparent;border:1px solid var(--border);border-radius:4px;padding:9px 10px;font-family:var(--mono);font-size:11px;color:var(--text-muted);cursor:pointer;white-space:nowrap;}
+  .btn-pri.on{background:#3a1a1a;border-color:var(--red);color:var(--red);}
+
+  /* ── Tab views ── */
+  .tv{display:none;flex:1;overflow:hidden;}
+  .tv.active{display:flex;}
+  .tvf{display:none;flex:1;overflow-y:auto;flex-direction:column;}
+  .tvf.active{display:flex;}
+  .sec{padding:8px 20px;font-family:var(--mono);font-size:10px;letter-spacing:3px;color:var(--text-muted);border-bottom:1px solid var(--border);background:var(--bg);}
+
+  /* ── History ── */
+  .hgroup{padding:16px 20px 10px;border-bottom:1px solid var(--border);}
+  .hdate{font-family:var(--display);font-size:15px;letter-spacing:3px;color:var(--text-dim);margin-bottom:8px;display:flex;align-items:center;gap:10px;}
+  .yrbadge{font-family:var(--mono);font-size:10px;padding:2px 8px;background:var(--surface2);color:var(--amber);border-radius:2px;letter-spacing:2px;}
+  .htask{display:flex;align-items:flex-start;gap:10px;padding:7px 4px;font-size:13px;color:var(--text-dim);border-bottom:1px dashed var(--border);cursor:pointer;border-radius:2px;transition:background 0.1s;}
+  .htask:last-child{border-bottom:none;}
+  .htask:hover{background:var(--surface2);}
+  .hico{color:var(--text-muted);font-size:11px;margin-top:2px;flex-shrink:0;}
+  .htxt{flex:1;line-height:1.4;}
+  .hmeta{font-family:var(--mono);font-size:10px;color:var(--text-muted);flex-shrink:0;}
+
+  /* ── Inbox ── */
+  .iitem{padding:14px 20px;border-bottom:1px solid var(--border);}
+  .ihead{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;flex-wrap:wrap;gap:6px;}
+  .ifrom{font-family:var(--mono);font-size:12px;color:var(--green);}
+  .imeta{display:flex;gap:8px;align-items:center;}
+  .ich{font-family:var(--mono);font-size:10px;background:var(--surface2);color:var(--amber);padding:2px 8px;border-radius:2px;}
+  .itm{font-family:var(--mono);font-size:11px;color:var(--text-muted);}
+  .imsg{font-size:14px;color:var(--text);line-height:1.4;}
+
+  /* ── Status bar ── */
+  .statusbar{display:flex;align-items:center;gap:16px;padding:7px 20px;background:var(--surface);border-top:1px solid var(--border);flex-shrink:0;}
+  .si{font-family:var(--mono);font-size:11px;color:var(--text-muted);letter-spacing:1px;display:flex;align-items:center;gap:5px;}
+  .sdot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 2s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+  .snum{color:var(--green);font-weight:600;}
+  .sfarm{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--text-muted);letter-spacing:1px;}
+
+  /* ── Toast ── */
+  .toast{position:fixed;bottom:58px;left:50%;transform:translateX(-50%) translateY(14px);background:var(--surface2);border:1px solid var(--green-dim);border-radius:4px;padding:10px 18px;font-family:var(--mono);font-size:12px;color:var(--green);letter-spacing:1px;opacity:0;transition:all 0.2s;z-index:500;white-space:nowrap;pointer-events:none;}
+  .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
+
+  /* ── Settings overlay ── */
+  .settings-overlay{position:fixed;top:0;right:0;bottom:0;width:380px;background:var(--surface);border-left:2px solid var(--border);z-index:400;display:flex;flex-direction:column;transform:translateX(100%);transition:transform 0.25s ease;overflow-y:auto;}
+  .settings-overlay.open{transform:translateX(0);}
+  .scrim{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:399;display:none;}
+  .scrim.open{display:block;}
+  .set-header{display:flex;align-items:center;justify-content:space-between;padding:18px 20px;border-bottom:1px solid var(--border);flex-shrink:0;}
+  .set-title{font-family:var(--display);font-size:20px;letter-spacing:3px;}
+  .set-close{background:transparent;border:none;color:var(--text-dim);font-size:20px;cursor:pointer;padding:2px 6px;}
+  .set-close:hover{color:var(--text);}
+  .set-section{padding:20px;border-bottom:1px solid var(--border);}
+  .set-label{font-family:var(--mono);font-size:10px;letter-spacing:3px;color:var(--text-muted);margin-bottom:12px;text-transform:uppercase;}
+  .set-row{margin-bottom:12px;}
+  .set-field-label{font-family:var(--mono);font-size:11px;color:var(--text-dim);margin-bottom:6px;}
+  .logo-upload{border:1px dashed var(--border);border-radius:4px;padding:16px;text-align:center;cursor:pointer;transition:border-color 0.15s;}
+  .logo-upload:hover{border-color:var(--green-dim);}
+  .logo-upload-hint{font-family:var(--mono);font-size:11px;color:var(--text-muted);letter-spacing:1px;}
+  .logo-preview{max-height:56px;max-width:200px;object-fit:contain;border-radius:2px;display:none;margin:0 auto 8px;}
+  .logo-remove{font-family:var(--mono);font-size:10px;color:var(--red);cursor:pointer;background:none;border:none;margin-top:6px;display:none;}
+  .hand-list{list-style:none;margin-bottom:10px;}
+  .hand-item{display:flex;align-items:center;justify-content:space-between;padding:7px 10px;border-bottom:1px solid var(--border);}
+  .hand-item-name{font-family:var(--mono);font-size:13px;color:var(--text);}
+  .hand-item-phone{font-family:var(--mono);font-size:10px;color:var(--text-muted);}
+  .hand-item-rm{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:16px;padding:0 4px;}
+  .hand-item-rm:hover{color:var(--red);}
+  .hand-add-row{display:flex;gap:8px;}
+  .set-btn{background:var(--green);color:#0f110e;border:none;border-radius:4px;padding:10px 16px;font-family:var(--mono);font-size:12px;font-weight:600;cursor:pointer;width:100%;margin-top:4px;}
+  .set-btn-danger{background:transparent;border:1px solid var(--border);color:var(--text-muted);border-radius:4px;padding:10px 16px;font-family:var(--mono);font-size:12px;cursor:pointer;width:100%;margin-top:8px;}
+  .set-btn-danger:hover{border-color:var(--red);color:var(--red);}
+
+  /* ── Animations ── */
+  @keyframes slideIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}
+  .new{animation:slideIn 0.3s ease forwards;}
+
+  /* ── Mobile ── */
+  @media(max-width:700px){
+    .main{flex-direction:column;overflow-y:auto;}
+    .panel-left{flex:none;border-right:none;border-bottom:1px solid var(--border);}
+    .panel-right{flex:none;}
+    .task-list{overflow:visible;max-height:none;}
+    .farm-name-display{display:none;}
+    .settings-overlay{width:100%;border-left:none;}
+    .add-bar{position:sticky;bottom:0;z-index:10;}
+    .clock{font-size:14px;}
+    .tab{padding:10px;font-size:10px;letter-spacing:1px;}
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════ -->
+<!-- LOADING                               -->
+<!-- ══════════════════════════════════════ -->
+<div id="vLoading">
+  <div class="load-logo">FARMBOARD</div>
+  <div class="load-bar"><div class="load-fill"></div></div>
+</div>
+
+<!-- ══════════════════════════════════════ -->
+<!-- AUTH                                  -->
+<!-- ══════════════════════════════════════ -->
+<div id="vAuth" style="display:none;flex:1;align-items:center;justify-content:center;padding:24px;">
+  <div class="auth-card">
+    <div class="auth-logo">FARMBOARD</div>
+    <div class="auth-sub">FARM OPERATIONS BOARD</div>
+    <div class="auth-title" id="authTitle">SIGN IN</div>
+    <div class="field">
+      <div class="field-label">EMAIL</div>
+      <input class="inp" id="authEmail" type="email" placeholder="you@example.com" autocomplete="email">
+    </div>
+    <div class="field">
+      <div class="field-label">PASSWORD</div>
+      <input class="inp" id="authPassword" type="password" placeholder="••••••••" autocomplete="current-password"
+        onkeydown="if(event.key==='Enter')submitAuth()">
+    </div>
+    <div style="margin-top:20px;">
+      <button class="btn-green" id="authBtn" onclick="submitAuth()">SIGN IN</button>
+    </div>
+    <div class="auth-err" id="authErr"></div>
+    <div class="auth-toggle" id="authToggle">
+      Don't have an account? <span onclick="toggleAuthMode()">Create one</span>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ -->
+<!-- SETUP (first-time farm setup)         -->
+<!-- ══════════════════════════════════════ -->
+<div id="vSetup" style="display:none;flex:1;align-items:center;justify-content:center;padding:24px;overflow-y:auto;">
+  <div class="setup-card">
+    <div class="setup-logo">FARMBOARD</div>
+    <div class="setup-headline">SET UP YOUR FARM</div>
+    <div class="setup-sub">YOU'RE ALMOST IN &mdash; JUST TWO QUICK THINGS</div>
+
+    <div class="set-row">
+      <div class="field-label">FARM NAME</div>
+      <input class="inp" id="setupFarmName" type="text" placeholder="e.g. North Creek Farms">
+    </div>
+
+    <div class="setup-section-label">FARM HANDS <span style="color:var(--text-muted);font-size:9px;">(OPTIONAL — YOU CAN ADD THESE LATER)</span></div>
+    <div id="setupHandRows"></div>
+    <button class="add-hand-btn" onclick="addSetupHandRow()">+ ADD FARM HAND</button>
+
+    <div style="margin-top:28px;">
+      <button class="btn-green" onclick="completeSetup()">GET STARTED</button>
+    </div>
+    <div class="auth-err" id="setupErr"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ -->
+<!-- APP                                   -->
+<!-- ══════════════════════════════════════ -->
+<div id="vApp" style="display:none;flex:1;flex-direction:column;overflow:hidden;">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="logo">
+      <img class="logo-img" id="logoImg" alt="Farm Logo">
+      <span class="logo-mark">FARMBOARD</span>
+      <span class="farm-name-display" id="farmNameDisplay"></span>
+    </div>
+    <div class="header-right">
+      <div>
+        <div class="clock" id="clock">--:--:--</div>
+        <div class="date-label" id="dateLabel">---</div>
+      </div>
+      <button class="icon-btn" onclick="toggleFS()" title="Fullscreen">&#9974;</button>
+      <button class="icon-btn" onclick="toggleSettings()" title="Settings">&#9881;</button>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('board')">&#11035; Board</button>
+    <button class="tab" onclick="switchTab('history')">&#128203; History</button>
+    <button class="tab" onclick="switchTab('inbox')">&#128241; Inbox</button>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+
+    <!-- Board tab -->
+    <div class="tv active" id="tab-board">
+      <div class="panel panel-left">
+        <div class="panel-header">
+          <span class="panel-title">ACTIVE JOBS</span>
+          <span class="badge badge-green" id="activeCount">0 OPEN</span>
+        </div>
+        <div class="task-list" id="activeList"></div>
+        <div class="add-bar">
+          <select class="sel" id="who"></select>
+          <input class="add-inp" id="inp" placeholder="Add a task..." onkeydown="if(event.key==='Enter')addTask()">
+          <button class="btn-pri" id="priorityToggle" onclick="togglePri()" title="Toggle priority">&#128308;</button>
+          <button class="btn-sim" onclick="sim()">&#128241; SMS</button>
+          <button class="btn-add" onclick="addTask()">+ ADD</button>
+        </div>
+      </div>
+      <div class="panel panel-right">
+        <div class="panel-header">
+          <span class="panel-title">DONE TODAY</span>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <button class="archive-btn" id="archiveBtn" onclick="archiveCompleted()">ARCHIVE &#8595;</button>
+            <span class="badge badge-muted" id="doneCount">0 DONE</span>
+          </div>
+        </div>
+        <div class="task-list" id="doneList"></div>
+      </div>
+    </div>
+
+    <!-- History tab -->
+    <div class="tvf" id="tab-history">
+      <div class="sec">SAME WEEK IN PRIOR YEARS &mdash; TAP ANY TASK TO COPY TO TODAY</div>
+      <div id="historyList"></div>
+    </div>
+
+    <!-- Inbox tab -->
+    <div class="tvf" id="tab-inbox">
+      <div class="sec">INCOMING MESSAGES &mdash; SMS &amp; TELEGRAM</div>
+      <div id="inboxList">
+        <div class="empty">NO MESSAGES YET<br><br>TEXTS TO YOUR FARM NUMBER<br>WILL APPEAR HERE</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Status bar -->
+  <div class="statusbar">
+    <div class="si"><div class="sdot"></div>LIVE</div>
+    <div class="si">OPEN: <span class="snum" id="sOpen">0</span></div>
+    <div class="si">DONE: <span class="snum" id="sDone">0</span></div>
+    <div class="sfarm" id="statusFarm"></div>
+  </div>
+
+</div><!-- end vApp -->
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Settings scrim + overlay -->
+<div class="scrim" id="scrim" onclick="toggleSettings()"></div>
+<div class="settings-overlay" id="settingsPanel">
+  <div class="set-header">
+    <span class="set-title">SETTINGS</span>
+    <button class="set-close" onclick="toggleSettings()">&#10005;</button>
+  </div>
+  <div class="set-section">
+    <div class="set-label">Farm Identity</div>
+    <div class="set-row">
+      <div class="set-field-label">FARM NAME</div>
+      <input class="inp" id="setFarmName" type="text" placeholder="Your Farm Name">
+    </div>
+    <div class="set-row">
+      <div class="set-field-label">FARM LOGO</div>
+      <div class="logo-upload" onclick="document.getElementById('logoFile').click()">
+        <img id="logoPreview" class="logo-preview" alt="Logo preview">
+        <div class="logo-upload-hint" id="logoHint">+ CLICK TO UPLOAD LOGO</div>
+        <button class="logo-remove" id="logoRemoveBtn" onclick="removeLogo(event)">&#10005; REMOVE</button>
+      </div>
+      <input type="file" id="logoFile" accept="image/*" style="display:none" onchange="handleLogoUpload(event)">
+    </div>
+  </div>
+  <div class="set-section">
+    <div class="set-label">Farm Hands</div>
+    <ul class="hand-list" id="setHandList"></ul>
+    <div class="hand-add-row">
+      <input class="inp" id="newHandName" type="text" placeholder="Name..." style="flex:1;" onkeydown="if(event.key==='Enter')addSettingsHand()">
+      <input class="inp" id="newHandPhone" type="tel" placeholder="+1 701..." style="flex:1;" onkeydown="if(event.key==='Enter')addSettingsHand()">
+    </div>
+    <button class="add-hand-btn" style="margin-top:8px;" onclick="addSettingsHand()">+ ADD FARM HAND</button>
+  </div>
+  <div class="set-section">
+    <button class="set-btn" onclick="saveSettings()">SAVE SETTINGS</button>
+    <button class="set-btn-danger" onclick="signOut()">SIGN OUT</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ -->
+<!-- SCRIPTS                               -->
+<!-- ══════════════════════════════════════ -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+
+// ── Supabase client
+const { createClient } = supabase;
+const sb = createClient(
+  'https://msrduyfwfdpsdrmymvui.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1zcmR1eWZ3ZmRwc2RybXltdnVpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgxNTQ1MjIsImV4cCI6MjA5MzczMDUyMn0.wC47pfvMFxgmxGBpZi5i1uDqD2eQI10HgLJarn64Mg4'
+);
+
+// ── State
+let currentUser = null;
+let currentFarm = null;
+let tasks       = [];
+let farmHands   = [];
+let realtimeChannel = null;
+let settingsOpen = false;
+let newPriority  = false;
+let simIdx       = 0;
+let historyCache = [];
+let settingsDraft = null;
+
+// ── Sim messages
+const SIMS = [
+  {text:"Need hydraulic fluid from town — we're low",src:"TEXT"},
+  {text:"Fence on the east pasture is down, needs fixed today",src:"TEXT"},
+  {text:"Load beans in bin 4 for pickup tomorrow at 7",src:"TEXT"},
+  {text:"Wire on grain dryer is sparking — don't run it",src:"TEXT"},
+  {text:"Check combine headers are still in the shed after the rain",src:"TEXT"},
+  {text:"Propane at the shop is low, call for delivery",src:"TEXT"},
+];
+
+// ── Utility
+function genId(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+function nowISO(){ return new Date().toISOString(); }
+function fmtTime(iso){ return new Date(iso).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true}); }
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function isoWeek(d){
+  const dt = new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
+  const day = dt.getUTCDay()||7;
+  dt.setUTCDate(dt.getUTCDate()+4-day);
+  const y0 = new Date(Date.UTC(dt.getUTCFullYear(),0,1));
+  return { week:Math.ceil(((dt-y0)/86400000+1)/7), year:d.getFullYear() };
+}
+
+function weekRange(weekNum,year){
+  const jan4 = new Date(Date.UTC(year,0,4));
+  const mon = new Date(jan4);
+  mon.setUTCDate(jan4.getUTCDate()-(jan4.getUTCDay()||7)+1+(weekNum-1)*7);
+  const sun = new Date(mon); sun.setUTCDate(mon.getUTCDate()+6);
+  const f = d => d.toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'}).toUpperCase();
+  return `${f(mon)}–${f(sun)}`;
+}
+
+// ── Clock
+function tick(){
+  const n = new Date();
+  const cl = document.getElementById('clock');
+  const dl = document.getElementById('dateLabel');
+  if(cl) cl.textContent = n.toLocaleTimeString('en-US',{hour12:false});
+  if(dl) dl.textContent = n.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}).toUpperCase();
+}
+tick(); setInterval(tick,1000);
+
+// ── View management
+function showView(name){
+  ['vLoading','vAuth','vSetup','vApp'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(!el) return;
+    if(id === 'vLoading' || id === 'vAuth' || id === 'vSetup'){
+      el.style.display = (id==='v'+cap(name)) ? 'flex' : 'none';
+    } else {
+      el.style.display = (id==='v'+cap(name)) ? 'flex' : 'none';
+      el.style.flexDirection = (id==='v'+cap(name)) ? 'column' : '';
+    }
+  });
+}
+function cap(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
+
+// ══════════════════════════════════════════
+// AUTH
+// ══════════════════════════════════════════
+let authMode = 'signin'; // 'signin' | 'signup'
+
+function toggleAuthMode(){
+  authMode = authMode==='signin' ? 'signup' : 'signin';
+  document.getElementById('authTitle').textContent = authMode==='signin' ? 'SIGN IN' : 'CREATE ACCOUNT';
+  document.getElementById('authBtn').textContent   = authMode==='signin' ? 'SIGN IN' : 'CREATE ACCOUNT';
+  document.getElementById('authToggle').innerHTML  = authMode==='signin'
+    ? 'Don\'t have an account? <span onclick="toggleAuthMode()">Create one</span>'
+    : 'Already have an account? <span onclick="toggleAuthMode()">Sign in</span>';
+  document.getElementById('authErr').textContent = '';
+}
+
+async function submitAuth(){
+  const email    = document.getElementById('authEmail').value.trim();
+  const password = document.getElementById('authPassword').value;
+  const btn      = document.getElementById('authBtn');
+  const errEl    = document.getElementById('authErr');
+  if(!email||!password){ errEl.textContent='Email and password required.'; return; }
+
+  btn.textContent = authMode==='signin' ? 'SIGNING IN...' : 'CREATING ACCOUNT...';
+  btn.disabled = true;
+  errEl.textContent = '';
+
+  const fn = authMode==='signin'
+    ? sb.auth.signInWithPassword({email,password})
+    : sb.auth.signUp({email,password});
+
+  const {data,error} = await fn;
+
+  if(error){
+    errEl.textContent = error.message;
+    btn.textContent = authMode==='signin' ? 'SIGN IN' : 'CREATE ACCOUNT';
+    btn.disabled = false;
+    return;
+  }
+
+  // signUp may need email confirmation — check
+  if(authMode==='signup' && !data.session){
+    errEl.style.color = 'var(--green)';
+    errEl.textContent = 'Check your email to confirm your account, then sign in.';
+    btn.textContent = 'CREATE ACCOUNT';
+    btn.disabled = false;
+    return;
+  }
+
+  // Auth successful — onAuthStateChange will fire and handle the rest
+}
+
+async function signOut(){
+  if(realtimeChannel) await sb.removeChannel(realtimeChannel);
+  await sb.auth.signOut();
+  currentUser = null; currentFarm = null; tasks = []; farmHands = [];
+  if(settingsOpen) toggleSettings();
+  showView('auth');
+}
+
+// ══════════════════════════════════════════
+// FARM SETUP
+// ══════════════════════════════════════════
+function addSetupHandRow(){
+  const row = document.createElement('div');
+  row.className = 'hand-row';
+  row.innerHTML = `
+    <input class="inp" type="text" placeholder="Name (e.g. Roger)">
+    <input class="inp" type="tel" placeholder="Phone (optional)">
+    <button class="hand-rm" onclick="this.parentElement.remove()">&#10005;</button>`;
+  document.getElementById('setupHandRows').appendChild(row);
+}
+
+async function completeSetup(){
+  const name = document.getElementById('setupFarmName').value.trim() || 'My Farm';
+  const errEl = document.getElementById('setupErr');
+  errEl.textContent = '';
+
+  // Update farm name
+  const {error:fe} = await sb.from('farms').update({name}).eq('id',currentFarm.id);
+  if(fe){ errEl.textContent = fe.message; return; }
+  currentFarm.name = name;
+
+  // Collect farm hands
+  const rows = document.getElementById('setupHandRows').querySelectorAll('.hand-row');
+  const hands = [];
+  rows.forEach(r=>{
+    const inputs = r.querySelectorAll('input');
+    const hname = inputs[0].value.trim();
+    const phone = inputs[1].value.trim() || null;
+    if(hname) hands.push({farm_id:currentFarm.id, name:hname, phone});
+  });
+
+  if(hands.length>0){
+    await sb.from('farm_hands').insert(hands);
+  }
+
+  farmHands = await fetchFarmHands();
+  updateWhoSelect();
+  applyFarmUI();
+  subscribeToTasks();
+  showView('app');
+  render();
+}
+
+// ══════════════════════════════════════════
+// DATA
+// ══════════════════════════════════════════
+async function loadFarm(){
+  const {data,error} = await sb
+    .from('farms').select('*').eq('owner_id',currentUser.id).maybeSingle();
+
+  if(!data){
+    // First login — create farm, go to setup
+    const {data:newFarm,error:ne} = await sb
+      .from('farms').insert({owner_id:currentUser.id,name:'My Farm'}).select().single();
+    if(ne){ console.error(ne); return; }
+    currentFarm = newFarm;
+    showView('setup');
+    return;
+  }
+
+  currentFarm = data;
+  const [t,h] = await Promise.all([fetchTasks(), fetchFarmHands()]);
+  tasks = t;
+  farmHands = h;
+  updateWhoSelect();
+  applyFarmUI();
+  subscribeToTasks();
+  showView('app');
+  render();
+}
+
+async function fetchTasks(){
+  const {data} = await sb
+    .from('tasks').select('*')
+    .eq('farm_id',currentFarm.id)
+    .eq('archived',false)
+    .order('created_at',{ascending:true});
+  return data||[];
+}
+
+async function fetchFarmHands(){
+  const {data} = await sb
+    .from('farm_hands').select('*')
+    .eq('farm_id',currentFarm.id)
+    .order('created_at',{ascending:true});
+  return data||[];
+}
+
+// ── Realtime
+function subscribeToTasks(){
+  if(realtimeChannel) sb.removeChannel(realtimeChannel);
+  realtimeChannel = sb.channel('farm-tasks-'+currentFarm.id)
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'tasks',filter:`farm_id=eq.${currentFarm.id}`},(p)=>{
+      if(!tasks.find(t=>t.id===p.new.id) && !p.new.archived){
+        tasks.unshift(p.new);
+        render();
+        addInboxEntry(p.new);
+        toast('&#128241; New task from '+p.new.sender_name);
+      }
+    })
+    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'tasks',filter:`farm_id=eq.${currentFarm.id}`},(p)=>{
+      const idx = tasks.findIndex(t=>t.id===p.new.id);
+      if(idx!==-1){
+        if(p.new.archived){ tasks.splice(idx,1); }
+        else { tasks[idx]=p.new; }
+        render();
+      }
+    })
+    .subscribe();
+}
+
+// ══════════════════════════════════════════
+// TASK ACTIONS
+// ══════════════════════════════════════════
+async function addTask(){
+  const text = document.getElementById('inp').value.trim();
+  if(!text) return;
+  const senderName = document.getElementById('who').value || 'Manual';
+
+  const {data,error} = await sb.from('tasks').insert({
+    farm_id:     currentFarm.id,
+    text,
+    sender_name: senderName,
+    source:      'MANUAL',
+    priority:    newPriority,
+  }).select().single();
+
+  if(error){ toast('Error: '+error.message); return; }
+
+  tasks.unshift(data);
+  document.getElementById('inp').value='';
+  if(newPriority){ newPriority=false; updatePriBtn(); }
+  render();
+  toast('Task added');
+}
+
+async function toggleTask(id){
+  const t = tasks.find(x=>x.id===id);
+  if(!t) return;
+  const done = !t.done;
+  const {error} = await sb.from('tasks').update({
+    done,
+    completed_at: done ? nowISO() : null,
+  }).eq('id',id);
+  if(error){ toast('Error saving'); return; }
+  t.done=done; t.completed_at=done?nowISO():null;
+  render();
+  toast(done ? '&#10003; Checked off' : '&#8617; Reopened');
+}
+
+async function archiveCompleted(){
+  const doneIds = tasks.filter(t=>t.done).map(t=>t.id);
+  if(!doneIds.length) return;
+  await sb.from('tasks').update({archived:true}).in('id',doneIds);
+  tasks = tasks.filter(t=>!t.done);
+  render();
+  toast(doneIds.length+' task'+(doneIds.length>1?'s':'')+' archived');
+}
+
+async function sim(){
+  const m = SIMS[simIdx%SIMS.length]; simIdx++;
+  const sender = farmHands.length ? farmHands[simIdx%farmHands.length].name : 'Farm Hand';
+  const {data,error} = await sb.from('tasks').insert({
+    farm_id:     currentFarm.id,
+    text:        m.text,
+    sender_name: sender,
+    source:      'TEXT',
+    priority:    false,
+  }).select().single();
+  if(!error){
+    tasks.unshift(data);
+    render();
+    addInboxEntry(data);
+    toast('&#128241; Simulated SMS from '+sender);
+  }
+}
+
+function copyHistory(idx){
+  const t = historyCache[idx];
+  if(!t) return;
+  document.getElementById('inp').value = t.text;
+  document.getElementById('who').value = t.sender_name;
+  switchTab('board');
+  document.getElementById('inp').focus();
+  toast('Copied to add bar — hit ADD to confirm');
+}
+
+// ══════════════════════════════════════════
+// RENDER
+// ══════════════════════════════════════════
+function render(){
+  const active = tasks.filter(t=>!t.done).sort((a,b)=>(b.priority-a.priority)||(new Date(a.created_at)-new Date(b.created_at)));
+  const done   = tasks.filter(t=>t.done);
+
+  document.getElementById('activeCount').textContent = active.length+' OPEN';
+  document.getElementById('doneCount').textContent   = done.length+' DONE';
+  document.getElementById('sOpen').textContent = active.length;
+  document.getElementById('sDone').textContent = done.length;
+  document.getElementById('archiveBtn').classList.toggle('visible',done.length>0);
+
+  document.getElementById('activeList').innerHTML = active.length===0
+    ? '<div class="empty">ALL CAUGHT UP<br>NOTHING OPEN &#127881;</div>'
+    : active.map(taskHTML).join('');
+
+  document.getElementById('doneList').innerHTML = done.length===0
+    ? '<div class="empty">NOTHING COMPLETED YET</div>'
+    : done.map(taskHTML).join('');
+
+  // clean up _new flags after animation
+  setTimeout(()=>tasks.forEach(t=>t._new=false),500);
+}
+
+function taskHTML(t){
+  return `<div class="task-item${t.done?' done':''}${t._new?' new':''}" onclick="toggleTask('${t.id}')">
+    <div class="pdot ${t.priority?'hi':'lo'}"></div>
+    <div class="cb"><span class="ck">&#10003;</span></div>
+    <div class="task-body">
+      <div class="task-text">${esc(t.text)}</div>
+      <div class="meta">
+        <span class="sender">${esc(t.sender_name)}</span>
+        <span class="time">${fmtTime(t.created_at)}</span>
+        <span class="src">${esc(t.source)}</span>
+      </div>
+    </div>
+  </div>`;
+}
+
+async function renderHistory(){
+  const todayW = isoWeek(new Date());
+  const {data} = await sb
+    .from('tasks').select('*')
+    .eq('farm_id',currentFarm.id)
+    .eq('archived',true)
+    .order('created_at',{ascending:false});
+
+  const relevant = (data||[]).filter(t=>{
+    const w = isoWeek(new Date(t.created_at));
+    return w.week===todayW.week && w.year<todayW.year;
+  });
+
+  historyCache = relevant;
+  const el = document.getElementById('historyList');
+
+  if(!relevant.length){
+    el.innerHTML='<div class="empty">NO HISTORY YET<br><br>TASKS YOU ARCHIVE WILL APPEAR HERE<br>WHEN VIEWED IN FUTURE YEARS</div>';
+    return;
+  }
+
+  const byYear={};
+  relevant.forEach(t=>{ const yr=new Date(t.created_at).getFullYear(); if(!byYear[yr])byYear[yr]=[]; byYear[yr].push(t); });
+  const years = Object.keys(byYear).map(Number).sort((a,b)=>b-a);
+
+  let idx=0;
+  el.innerHTML = years.map(yr=>{
+    const yTasks=byYear[yr];
+    const range=weekRange(todayW.week,yr);
+    return `<div class="hgroup">
+      <div class="hdate">${range} <span class="yrbadge">${yr}</span></div>
+      ${yTasks.map(t=>{
+        const i=idx++;
+        return `<div class="htask" onclick="copyHistory(${i})">
+          <span class="hico">&#10003;</span>
+          <span class="htxt">${esc(t.text)}</span>
+          <span class="hmeta">${esc(t.sender_name)} &middot; ${fmtTime(t.created_at)}</span>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }).join('');
+}
+
+function addInboxEntry(task){
+  const il = document.getElementById('inboxList');
+  const empty = il.querySelector('.empty');
+  if(empty) empty.remove();
+  const d = document.createElement('div');
+  d.className = 'iitem new';
+  d.innerHTML = `<div class="ihead"><span class="ifrom">${esc(task.sender_name)}</span><div class="imeta"><span class="ich">${esc(task.source)}</span><span class="itm">${fmtTime(task.created_at)}</span></div></div><div class="imsg">${esc(task.text)}</div>`;
+  il.prepend(d);
+}
+
+// ══════════════════════════════════════════
+// SETTINGS
+// ══════════════════════════════════════════
+function toggleSettings(){
+  settingsOpen=!settingsOpen;
+  document.getElementById('settingsPanel').classList.toggle('open',settingsOpen);
+  document.getElementById('scrim').classList.toggle('open',settingsOpen);
+  if(settingsOpen) populateSettings();
+}
+
+function populateSettings(){
+  settingsDraft = { name:currentFarm.name, logo_data:currentFarm.logo_data||null, hands:[...farmHands] };
+  document.getElementById('setFarmName').value = settingsDraft.name;
+  renderSetHandList();
+  const prev=document.getElementById('logoPreview');
+  const hint=document.getElementById('logoHint');
+  const rmBtn=document.getElementById('logoRemoveBtn');
+  if(settingsDraft.logo_data){
+    prev.src=settingsDraft.logo_data; prev.style.display='block';
+    hint.style.display='none'; rmBtn.style.display='block';
+  } else {
+    prev.style.display='none'; hint.style.display='block'; rmBtn.style.display='none';
+  }
+}
+
+function renderSetHandList(){
+  const ul=document.getElementById('setHandList');
+  ul.innerHTML=settingsDraft.hands.map((h,i)=>`
+    <li class="hand-item">
+      <div><div class="hand-item-name">${esc(h.name)}</div><div class="hand-item-phone">${h.phone||''}</div></div>
+      <button class="hand-item-rm" onclick="removeSettingsHand(${i})">&#10005;</button>
+    </li>`).join('');
+}
+
+async function addSettingsHand(){
+  const nameInp  = document.getElementById('newHandName');
+  const phoneInp = document.getElementById('newHandPhone');
+  const name  = nameInp.value.trim();
+  const phone = phoneInp.value.trim()||null;
+  if(!name) return;
+  const {data,error} = await sb.from('farm_hands').insert({farm_id:currentFarm.id,name,phone}).select().single();
+  if(!error){
+    farmHands.push(data);
+    settingsDraft.hands.push(data);
+    nameInp.value=''; phoneInp.value='';
+    renderSetHandList();
+    updateWhoSelect();
+    toast('Farm hand added');
+  }
+}
+
+async function removeSettingsHand(idx){
+  const hand = settingsDraft.hands[idx];
+  if(!hand) return;
+  if(hand.id){
+    await sb.from('farm_hands').delete().eq('id',hand.id);
+    farmHands = farmHands.filter(h=>h.id!==hand.id);
+  }
+  settingsDraft.hands.splice(idx,1);
+  renderSetHandList();
+  updateWhoSelect();
+}
+
+async function saveSettings(){
+  const name = document.getElementById('setFarmName').value.trim()||'My Farm';
+  const updates = { name, logo_data: settingsDraft.logo_data };
+  await sb.from('farms').update(updates).eq('id',currentFarm.id);
+  currentFarm.name = name;
+  currentFarm.logo_data = settingsDraft.logo_data;
+  applyFarmUI();
+  toast('Settings saved');
+  toggleSettings();
+}
+
+function handleLogoUpload(e){
+  const file=e.target.files[0]; if(!file) return;
+  if(file.size>512*1024){ toast('Logo must be under 500KB'); return; }
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    settingsDraft.logo_data=ev.target.result;
+    populateSettings();
+  };
+  reader.readAsDataURL(file);
+  e.target.value='';
+}
+
+function removeLogo(e){
+  e.stopPropagation();
+  settingsDraft.logo_data=null;
+  populateSettings();
+}
+
+function applyFarmUI(){
+  const nameEl=document.getElementById('farmNameDisplay');
+  const statusEl=document.getElementById('statusFarm');
+  const logoEl=document.getElementById('logoImg');
+  if(nameEl) nameEl.textContent=currentFarm.name;
+  if(statusEl) statusEl.textContent=currentFarm.name.toUpperCase();
+  if(logoEl){
+    if(currentFarm.logo_data){ logoEl.src=currentFarm.logo_data; logoEl.style.display='block'; }
+    else { logoEl.style.display='none'; }
+  }
+  updateWhoSelect();
+}
+
+function updateWhoSelect(){
+  const sel=document.getElementById('who'); if(!sel) return;
+  const cur=sel.value;
+  const names=[...farmHands.map(h=>h.name),'Manual'];
+  sel.innerHTML=names.map(n=>`<option>${esc(n)}</option>`).join('');
+  if(names.includes(cur)) sel.value=cur;
+}
+
+// ── Priority toggle
+function togglePri(){
+  newPriority=!newPriority;
+  updatePriBtn();
+}
+function updatePriBtn(){
+  document.getElementById('priorityToggle').classList.toggle('on',newPriority);
+}
+
+// ── Tab switching
+function switchTab(n){
+  ['board','history','inbox'].forEach((t,i)=>{
+    document.querySelectorAll('.tab')[i].classList.toggle('active',t===n);
+  });
+  document.querySelectorAll('.tv,.tvf').forEach(v=>v.classList.remove('active'));
+  document.getElementById('tab-'+n).classList.add('active');
+  if(n==='history') renderHistory();
+}
+
+// ── Fullscreen
+function toggleFS(){
+  if(!document.fullscreenElement){ document.documentElement.requestFullscreen().catch(()=>{}); }
+  else { document.exitFullscreen(); }
+}
+
+// ── Toast
+let _tt;
+function toast(msg){
+  const el=document.getElementById('toast');
+  el.innerHTML=msg; el.classList.add('show');
+  clearTimeout(_tt); _tt=setTimeout(()=>el.classList.remove('show'),2600);
+}
+
+// ══════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════
+sb.auth.onAuthStateChange(async(event,session)=>{
+  if(session){
+    currentUser = session.user;
+    await loadFarm();
+  } else {
+    showView('auth');
+  }
+});
+
+// Check existing session on load
+(async()=>{
+  const {data:{session}} = await sb.auth.getSession();
+  if(!session) showView('auth');
+  // If session exists, onAuthStateChange fires and handles it
+})();
+
+</script>
+</body>
+</html>
