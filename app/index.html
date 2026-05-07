@@ -463,6 +463,13 @@ const SIMS = [
 function genId(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
 function nowISO(){ return new Date().toISOString(); }
 function fmtTime(iso){ return new Date(iso).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true}); }
+function fmtDate(iso){
+  const d = new Date(iso);
+  const mm = String(d.getMonth()+1).padStart(2,'0');
+  const dd = String(d.getDate()).padStart(2,'0');
+  const yy = String(d.getFullYear()).slice(-2);
+  return mm+'/'+dd+'/'+yy;
+}
 function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 function isoWeek(d){
@@ -487,7 +494,7 @@ function tick(){
   const n = new Date();
   const cl = document.getElementById('clock');
   const dl = document.getElementById('dateLabel');
-  if(cl) cl.textContent = n.toLocaleTimeString('en-US',{hour12:false});
+  if(cl) cl.textContent = n.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',second:'2-digit',hour12:true});
   if(dl) dl.textContent = n.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}).toUpperCase();
 }
 tick(); setInterval(tick,1000);
@@ -849,7 +856,7 @@ function taskHTML(t){
       <div class="task-text">${esc(t.text)}</div>
       <div class="meta">
         <span class="sender">${esc(t.sender_name)}</span>
-        <span class="time">${fmtTime(t.created_at)}</span>
+        <span class="time">${fmtTime(t.created_at)} &middot; ${fmtDate(t.created_at)}</span>
         <span class="src">${esc(t.source)}</span>
       </div>
     </div>
