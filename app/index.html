@@ -113,6 +113,9 @@
   .pdot{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:9px;}
   .pdot.hi{background:var(--red);box-shadow:0 0 5px var(--red);}
   .pdot.lo{background:transparent;}
+  .assign-sel{margin-top:7px;background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:4px 8px;font-family:var(--mono);font-size:10px;color:var(--text-muted);outline:none;cursor:pointer;max-width:180px;}
+  .assign-sel:focus{border-color:var(--green-dim);}
+  .assign-sel.assigned{color:var(--green);border-color:var(--green-dim);}
   .empty{padding:40px 20px;text-align:center;font-family:var(--mono);font-size:12px;color:var(--text-dim);letter-spacing:2px;line-height:1.8;}
 
   /* ── Add bar ── */
@@ -901,6 +904,16 @@ async function restoreTask(id, ev){
   toast('&#8617; Restored to active');
 }
 
+async function assignTask(id, sel){
+  const name = sel.value || null;
+  const {error} = await sb.from('tasks').update({assigned_to: name}).eq('id', id);
+  if(error){ toast('Error assigning task'); return; }
+  const t = tasks.find(x=>x.id===id);
+  if(t) t.assigned_to = name;
+  sel.className = 'assign-sel' + (name ? ' assigned' : '');
+  toast(name ? 'Assigned to ' + name : 'Assignment cleared');
+}
+
 async function sim(){
   const m = SIMS[simIdx%SIMS.length]; simIdx++;
   const sender = farmHands.length ? farmHands[simIdx%farmHands.length].name : 'Crew Member';
@@ -959,6 +972,12 @@ function taskHTML(t){
   const restoreBtn = t.done
     ? `<button class="restore-btn" onclick="restoreTask('${t.id}',event)" title="Restore to active">&#8617; RESTORE</button>`
     : '';
+  const assignSel = !t.done
+    ? `<select class="assign-sel${t.assigned_to?' assigned':''}" onclick="event.stopPropagation()" onchange="assignTask('${t.id}',this)">
+        <option value="">— Assign to —</option>
+        ${farmHands.map(h=>`<option value="${esc(h.name)}"${t.assigned_to===h.name?' selected':''}>${esc(h.name)}</option>`).join('')}
+      </select>`
+    : '';
   return `<div class="task-item${t.done?' done':''}${t._new?' new':''}" onclick="toggleTask('${t.id}')">
     <div class="pdot ${t.priority?'hi':'lo'}"></div>
     <div class="cb"><span class="ck">&#10003;</span></div>
@@ -969,6 +988,7 @@ function taskHTML(t){
         <span class="time">${fmtTime(t.created_at)} &middot; ${fmtDate(t.created_at)}</span>
         <span class="src">${esc(t.source)}</span>
       </div>
+      ${assignSel}
     </div>
     ${restoreBtn}
   </div>`;
