@@ -302,11 +302,9 @@
 <div id="vLoading">
   <div class="load-logo">FARMBOARD</div>
   <div class="load-bar"><div class="load-fill"></div></div>
-  <div id="debugLog" style="display:none;margin-top:24px;max-width:520px;width:90%;font-family:var(--mono);font-size:11px;color:var(--text-dim);text-align:left;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:12px;line-height:1.6;max-height:280px;overflow-y:auto;"></div>
-  <div id="loadingErr" style="display:none;margin-top:18px;text-align:center;">
+  <div id="loadingErr" style="display:none;margin-top:24px;text-align:center;">
     <div style="font-family:var(--mono);font-size:11px;color:var(--red);letter-spacing:1px;margin-bottom:14px;" id="loadingErrMsg">Connection timed out.</div>
-    <button onclick="forceSignOut()" style="background:transparent;border:1px solid var(--border);border-radius:4px;padding:9px 20px;font-family:var(--mono);font-size:11px;color:var(--text-muted);cursor:pointer;letter-spacing:1px;margin-right:8px;">SIGN OUT &amp; TRY AGAIN</button>
-    <button onclick="hardReset()" style="background:var(--red);border:none;border-radius:4px;padding:9px 20px;font-family:var(--mono);font-size:11px;color:#fff;cursor:pointer;letter-spacing:1px;">HARD RESET</button>
+    <button onclick="forceSignOut()" style="background:transparent;border:1px solid var(--border);border-radius:4px;padding:9px 20px;font-family:var(--mono);font-size:11px;color:var(--text-muted);cursor:pointer;letter-spacing:1px;">SIGN OUT &amp; TRY AGAIN</button>
   </div>
 </div>
 
@@ -504,24 +502,9 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 
-// ── Debug logger (silent by default; auto-shows on red/amber events)
-function dbg(msg, color){
-  const el = document.getElementById('debugLog');
-  if(!el) { console.log('[dbg]', msg); return; }
-  const t = new Date().toLocaleTimeString('en-US',{hour12:false}).split(' ')[0];
-  const line = document.createElement('div');
-  line.style.color = color || 'var(--text-dim)';
-  line.textContent = '[' + t + '] ' + msg;
-  el.appendChild(line);
-  el.scrollTop = el.scrollHeight;
-  console.log('[FB]', msg);
-  // Only surface the log box if something actually went wrong
-  if(color === 'var(--red)' || color === 'var(--amber)') el.style.display = 'block';
-}
-function hardReset(){
-  try { localStorage.clear(); sessionStorage.clear(); } catch(e){}
-  location.reload();
-}
+// Lightweight console-only logger — kept so future investigations have breadcrumbs
+// in the browser dev console without ever cluttering the user-facing UI.
+function dbg(msg){ console.log('[FB]', msg); }
 dbg('Page loaded — initializing Supabase client...');
 
 // ── Supabase client
@@ -609,7 +592,6 @@ function showView(name){
     el.style.setProperty('display', show ? 'flex' : 'none', 'important');
     if(id === 'vApp' && show) el.style.flexDirection = 'column';
   });
-  if(typeof dbg==='function') dbg('showView('+name+') applied — '+target+' visible', 'var(--text-muted)');
 }
 
 // ══════════════════════════════════════════
