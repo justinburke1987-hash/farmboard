@@ -108,6 +108,8 @@
   .sender{font-family:var(--mono);font-size:11px;color:var(--green);letter-spacing:1px;}
   .time{font-family:var(--mono);font-size:11px;color:var(--text-dim);}
   .src{font-family:var(--mono);font-size:10px;color:var(--text-dim);background:var(--surface2);padding:1px 6px;border-radius:2px;}
+  .restore-btn{align-self:center;background:transparent;border:1px solid var(--amber-dim);color:var(--amber);font-family:var(--mono);font-size:10px;letter-spacing:1px;padding:6px 10px;border-radius:3px;cursor:pointer;flex-shrink:0;opacity:1;}
+  .restore-btn:hover{background:var(--amber-dim);}
   .pdot{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:9px;}
   .pdot.hi{background:var(--red);box-shadow:0 0 5px var(--red);}
   .pdot.lo{background:transparent;}
@@ -135,6 +137,8 @@
   .hgroup{padding:16px 20px 10px;border-bottom:1px solid var(--border);}
   .hdate{font-family:var(--display);font-size:15px;letter-spacing:3px;color:var(--text-dim);margin-bottom:8px;display:flex;align-items:center;gap:10px;}
   .yrbadge{font-family:var(--mono);font-size:10px;padding:2px 8px;background:var(--surface2);color:var(--amber);border-radius:2px;letter-spacing:2px;}
+  .yrbadge-now{background:var(--green-dim);color:var(--green);}
+  .yrbadge-match{background:var(--amber-dim);color:var(--amber);}
   .htask{display:flex;align-items:flex-start;gap:10px;padding:7px 4px;font-size:13px;color:var(--text);border-bottom:1px dashed var(--border);cursor:pointer;border-radius:2px;transition:background 0.1s;}
   .htask:last-child{border-bottom:none;}
   .htask:hover{background:var(--surface2);}
@@ -202,6 +206,8 @@
     body{height:auto;min-height:100dvh;overflow:visible;}
     #vApp{overflow:visible;}
     .main{flex-direction:column;overflow:visible;flex:none;}
+    .tv{flex-direction:column;overflow:visible;}
+    .tv.active{flex-direction:column;}
     .panel{overflow:visible;}
     .panel-left{flex:none;border-right:none;border-bottom:1px solid var(--border);}
     .panel-right{flex:none;padding-bottom:120px;} /* leave room for fixed add bar */
@@ -370,7 +376,7 @@
 
     <!-- History tab -->
     <div class="tvf" id="tab-history">
-      <div class="sec">SAME WEEK IN PRIOR YEARS &mdash; TAP ANY TASK TO COPY TO TODAY</div>
+      <div class="sec">ARCHIVED JOBS &mdash; THIS WEEK, PRIOR WEEKS, AND SAME WEEK PRIOR YEARS &middot; TAP ANY TASK TO COPY TO TODAY</div>
       <div id="historyList"></div>
     </div>
 
@@ -807,6 +813,11 @@ async function addTask(){
 async function toggleTask(id){
   const t = tasks.find(x=>x.id===id);
   if(!t) return;
+  // Going active → done: confirm so accidental taps don't close jobs
+  if(!t.done){
+    if(!confirm('Mark this job as complete?\n\n"' + t.text + '"')) return;
+  }
+  // Going done → active is harmless (restoring) — no confirm
   const done = !t.done;
   const {error} = await sb.from('tasks').update({
     done,
@@ -815,7 +826,18 @@ async function toggleTask(id){
   if(error){ toast('Error saving'); return; }
   t.done=done; t.completed_at=done?nowISO():null;
   render();
-  toast(done ? '&#10003; Checked off' : '&#8617; Reopened');
+  toast(done ? '&#10003; Job complete' : '&#8617; Restored to active');
+}
+
+async function restoreTask(id, ev){
+  if(ev) ev.stopPropagation();
+  const t = tasks.find(x=>x.id===id);
+  if(!t || !t.done) return;
+  const {error} = await sb.from('tasks').update({done:false, completed_at:null}).eq('id',id);
+  if(error){ toast('Error restoring'); return; }
+  t.done=false; t.completed_at=null;
+  render();
+  toast('&#8617; Restored to active');
 }
 
 async function archiveCompleted(){
@@ -881,6 +903,9 @@ function render(){
 }
 
 function taskHTML(t){
+  const restoreBtn = t.done
+    ? `<button class="restore-btn" onclick="restoreTask('${t.id}',event)" title="Restore to active">&#8617; RESTORE</button>`
+    : '';
   return `<div class="task-item${t.done?' done':''}${t._new?' new':''}" onclick="toggleTask('${t.id}')">
     <div class="pdot ${t.priority?'hi':'lo'}"></div>
     <div class="cb"><span class="ck">&#10003;</span></div>
@@ -892,6 +917,7 @@ function taskHTML(t){
         <span class="src">${esc(t.source)}</span>
       </div>
     </div>
+    ${restoreBtn}
   </div>`;
 }
 
@@ -903,35 +929,44 @@ async function renderHistory(){
     .eq('archived',true)
     .order('created_at',{ascending:false});
 
-  const relevant = (data||[]).filter(t=>{
-    const w = isoWeek(new Date(t.created_at));
-    return w.week===todayW.week && w.year<todayW.year;
-  });
-
-  historyCache = relevant;
+  const all = data || [];
+  historyCache = all;
   const el = document.getElementById('historyList');
 
-  if(!relevant.length){
-    el.innerHTML='<div class="empty">NO HISTORY YET<br><br>TASKS YOU ARCHIVE WILL APPEAR HERE<br>WHEN VIEWED IN FUTURE YEARS</div>';
+  if(!all.length){
+    el.innerHTML='<div class="empty">NO HISTORY YET<br><br>TASKS YOU ARCHIVE FROM "DONE TODAY"<br>WILL APPEAR HERE — GROUPED BY WEEK</div>';
     return;
   }
 
-  const byYear={};
-  relevant.forEach(t=>{ const yr=new Date(t.created_at).getFullYear(); if(!byYear[yr])byYear[yr]=[]; byYear[yr].push(t); });
-  const years = Object.keys(byYear).map(Number).sort((a,b)=>b-a);
+  // Group every archived task by its ISO week+year
+  const groups = {};
+  all.forEach((t,i)=>{
+    const w = isoWeek(new Date(t.created_at));
+    const key = w.year + '-W' + String(w.week).padStart(2,'0');
+    if(!groups[key]) groups[key] = { week:w.week, year:w.year, tasks:[] };
+    groups[key].tasks.push({task:t, idx:i});
+  });
 
-  let idx=0;
-  el.innerHTML = years.map(yr=>{
-    const yTasks=byYear[yr];
-    const range=weekRange(todayW.week,yr);
+  // Sort groups by year desc, week desc (most recent first)
+  const sortedKeys = Object.keys(groups).sort((a,b)=>b.localeCompare(a));
+
+  el.innerHTML = sortedKeys.map(key=>{
+    const g = groups[key];
+    const range = weekRange(g.week, g.year);
+    const isThisWeek = (g.week===todayW.week && g.year===todayW.year);
+    const isPriorYearSameWeek = (g.week===todayW.week && g.year<todayW.year);
+
+    let badge = `<span class="yrbadge">${g.year}</span>`;
+    if(isThisWeek) badge = `<span class="yrbadge yrbadge-now">THIS WEEK</span>`;
+    else if(isPriorYearSameWeek) badge = `<span class="yrbadge yrbadge-match">SAME WEEK · ${g.year}</span>`;
+
     return `<div class="hgroup">
-      <div class="hdate">${range} <span class="yrbadge">${yr}</span></div>
-      ${yTasks.map(t=>{
-        const i=idx++;
-        return `<div class="htask" onclick="copyHistory(${i})">
+      <div class="hdate">${range} ${badge}</div>
+      ${g.tasks.map(({task:t,idx:i})=>{
+        return `<div class="htask" onclick="copyHistory(${i})" title="Tap to copy to today's add bar">
           <span class="hico">&#10003;</span>
           <span class="htxt">${esc(t.text)}</span>
-          <span class="hmeta">${esc(t.sender_name)} &middot; ${fmtTime(t.created_at)}</span>
+          <span class="hmeta">${esc(t.sender_name)} &middot; ${fmtDate(t.created_at)}</span>
         </div>`;
       }).join('')}
     </div>`;
