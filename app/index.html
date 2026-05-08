@@ -349,9 +349,9 @@
       <input class="inp" id="setupFarmName" type="text" placeholder="e.g. North Creek Farms">
     </div>
 
-    <div class="setup-section-label">FARM HANDS <span style="color:var(--text-muted);font-size:9px;">(OPTIONAL — YOU CAN ADD THESE LATER)</span></div>
+    <div class="setup-section-label">CREW <span style="color:var(--text-muted);font-size:9px;">(OPTIONAL — YOU CAN ADD THESE LATER)</span></div>
     <div id="setupHandRows"></div>
-    <button class="add-hand-btn" onclick="addSetupHandRow()">+ ADD FARM HAND</button>
+    <button class="add-hand-btn" onclick="addSetupHandRow()">+ ADD CREW MEMBER</button>
 
     <div style="margin-top:28px;">
       <button class="btn-green" onclick="completeSetup()">GET STARTED</button>
@@ -482,13 +482,13 @@
     </div>
   </div>
   <div class="set-section">
-    <div class="set-label">Farm Hands</div>
+    <div class="set-label">Crew</div>
     <ul class="hand-list" id="setHandList"></ul>
     <div class="hand-add-row">
-      <input class="inp" id="newHandName" type="text" placeholder="Name..." style="flex:1;" onkeydown="if(event.key==='Enter')addSettingsHand()">
-      <input class="inp" id="newHandPhone" type="tel" placeholder="+1 701..." style="flex:1;" onkeydown="if(event.key==='Enter')addSettingsHand()">
+      <input class="inp" id="newHandName" type="text" placeholder="Name..." style="flex:1;" autocomplete="off" onkeydown="if(event.key==='Enter')addSettingsHand()">
+      <input class="inp" id="newHandPhone" type="tel" placeholder="+1 701..." style="flex:1;" autocomplete="off" onkeydown="if(event.key==='Enter')addSettingsHand()">
     </div>
-    <button class="add-hand-btn" style="margin-top:8px;" onclick="addSettingsHand()">+ ADD FARM HAND</button>
+    <button class="add-hand-btn" style="margin-top:8px;" onclick="addSettingsHand()">+ ADD CREW MEMBER</button>
   </div>
   <div class="set-section">
     <button class="set-btn" onclick="saveSettings()">SAVE SETTINGS</button>
@@ -903,7 +903,7 @@ async function restoreTask(id, ev){
 
 async function sim(){
   const m = SIMS[simIdx%SIMS.length]; simIdx++;
-  const sender = farmHands.length ? farmHands[simIdx%farmHands.length].name : 'Farm Hand';
+  const sender = farmHands.length ? farmHands[simIdx%farmHands.length].name : 'Crew Member';
   const {data,error} = await sb.from('tasks').insert({
     farm_id:     currentFarm.id,
     text:        m.text,
@@ -1085,7 +1085,7 @@ async function addSettingsHand(){
     nameInp.value=''; phoneInp.value='';
     renderSetHandList();
     updateWhoSelect();
-    toast('Farm hand added');
+    toast('Crew member added');
   }
 }
 
