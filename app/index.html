@@ -163,6 +163,25 @@
   .snum{color:var(--green);font-weight:600;}
   .sfarm{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--text-dim);letter-spacing:1px;}
 
+  /* ── Confirm modal ── */
+  .modal-scrim{position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:600;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(2px);}
+  .modal-scrim.open{display:flex;}
+  .modal{background:var(--surface);border:1px solid var(--border);border-radius:6px;width:100%;max-width:420px;box-shadow:0 12px 40px rgba(0,0,0,0.5);overflow:hidden;animation:modalIn 0.18s ease-out;}
+  @keyframes modalIn{from{opacity:0;transform:translateY(-8px) scale(0.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+  .modal-header{padding:16px 22px 6px;font-family:var(--display);font-size:20px;letter-spacing:3px;color:var(--green);border-bottom:1px solid var(--border);padding-bottom:14px;}
+  .modal-body{padding:18px 22px;font-family:var(--sans);font-size:14px;color:var(--text);line-height:1.5;}
+  .modal-body .modal-quote{display:block;margin-top:12px;padding:10px 12px;background:var(--surface2);border-left:3px solid var(--green);border-radius:2px;font-family:var(--mono);font-size:13px;color:var(--text);word-break:break-word;}
+  .modal-actions{display:flex;gap:10px;padding:14px 22px 18px;justify-content:flex-end;}
+  .modal-btn{font-family:var(--mono);font-size:12px;letter-spacing:2px;padding:11px 20px;border-radius:4px;cursor:pointer;border:none;font-weight:600;}
+  .modal-btn-cancel{background:transparent;border:1px solid var(--border);color:var(--text-dim);}
+  .modal-btn-cancel:hover{border-color:var(--text-dim);color:var(--text);}
+  .modal-btn-ok{background:var(--green);color:#0f110e;}
+  .modal-btn-ok:hover{opacity:0.88;}
+  @media(max-width:700px){
+    .modal-actions{flex-direction:column-reverse;}
+    .modal-btn{width:100%;padding:13px 20px;}
+  }
+
   /* ── Toast ── */
   .toast{position:fixed;bottom:58px;left:50%;transform:translateX(-50%) translateY(14px);background:var(--surface2);border:1px solid var(--green-dim);border-radius:4px;padding:10px 18px;font-family:var(--mono);font-size:12px;color:var(--green);letter-spacing:1px;opacity:0;transition:all 0.2s;z-index:500;white-space:nowrap;pointer-events:none;}
   .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
@@ -396,6 +415,18 @@
   </div>
 
 </div><!-- end vApp -->
+
+<!-- Confirm modal -->
+<div class="modal-scrim" id="modalScrim" onclick="if(event.target===this)modalCancel()">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-header" id="modalTitle">CONFIRM</div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-actions">
+      <button class="modal-btn modal-btn-cancel" onclick="modalCancel()">CANCEL</button>
+      <button class="modal-btn modal-btn-ok" id="modalOk" onclick="modalOk()">CONFIRM</button>
+    </div>
+  </div>
+</div>
 
 <!-- Toast -->
 <div class="toast" id="toast"></div>
@@ -827,7 +858,14 @@ async function toggleTask(id){
   if(!t) return;
   // Going active → done: confirm so accidental taps don't close jobs
   if(!t.done){
-    if(!confirm('Mark this job as complete?\n\n"' + t.text + '"')) return;
+    const ok = await confirmDialog({
+      title: 'COMPLETE JOB',
+      message: 'Mark this job as complete?',
+      quote: t.text,
+      okLabel: 'COMPLETE',
+      cancelLabel: 'CANCEL',
+    });
+    if(!ok) return;
   }
   // Going done → active is harmless (restoring) — no confirm
   const done = !t.done;
@@ -1126,6 +1164,35 @@ function toggleFS(){
   if(!document.fullscreenElement){ document.documentElement.requestFullscreen().catch(()=>{}); }
   else { document.exitFullscreen(); }
 }
+
+// ── Themed confirm dialog (replaces native confirm())
+let _modalResolver = null;
+function confirmDialog(opts){
+  // opts: { title, message, quote, okLabel, cancelLabel }
+  const o = opts || {};
+  document.getElementById('modalTitle').textContent = o.title || 'CONFIRM';
+  const body = document.getElementById('modalBody');
+  body.innerHTML = (o.message ? esc(o.message) : '')
+    + (o.quote ? '<span class="modal-quote">'+esc(o.quote)+'</span>' : '');
+  document.getElementById('modalOk').textContent = o.okLabel || 'CONFIRM';
+  document.querySelector('.modal-btn-cancel').textContent = o.cancelLabel || 'CANCEL';
+  document.getElementById('modalScrim').classList.add('open');
+  return new Promise(res=>{ _modalResolver = res; });
+}
+function modalOk(){
+  document.getElementById('modalScrim').classList.remove('open');
+  if(_modalResolver){ const r=_modalResolver; _modalResolver=null; r(true); }
+}
+function modalCancel(){
+  document.getElementById('modalScrim').classList.remove('open');
+  if(_modalResolver){ const r=_modalResolver; _modalResolver=null; r(false); }
+}
+// Allow Esc to cancel and Enter to confirm
+document.addEventListener('keydown',(e)=>{
+  if(!document.getElementById('modalScrim').classList.contains('open')) return;
+  if(e.key==='Escape') modalCancel();
+  else if(e.key==='Enter') modalOk();
+});
 
 // ── Toast
 let _tt;
