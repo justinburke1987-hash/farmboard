@@ -225,12 +225,15 @@
     body{height:auto;min-height:100dvh;overflow:visible;}
     #vApp{overflow:visible;}
     .main{flex-direction:column;overflow:visible;flex:none;}
-    .tv{flex-direction:column;overflow:visible;}
-    .tv.active{flex-direction:column;}
-    .panel{overflow:visible;}
-    .panel-left{flex:none;border-right:none;border-bottom:1px solid var(--border);}
-    .panel-right{flex:none;padding-bottom:120px;} /* leave room for fixed add bar */
-    .task-list{overflow:visible;max-height:none;}
+    /* CRITICAL: override desktop's flex:1 — otherwise .tv collapses to 0 height inside flex:none .main */
+    .tv, .tvf{flex:none;overflow:visible;}
+    .tv{flex-direction:column;}
+    .tv.active{display:flex;flex-direction:column;}
+    .tvf.active{display:flex;flex-direction:column;}
+    .panel{overflow:visible;flex:none;width:100%;}
+    .panel-left{flex:none;border-right:none;border-bottom:1px solid var(--border);width:100%;}
+    .panel-right{flex:none;padding-bottom:140px;width:100%;} /* leave room for fixed add bar */
+    .task-list{overflow:visible;max-height:none;flex:none;}
     .farm-name-display{display:none;}
     .settings-overlay{width:100%;border-left:none;}
 
