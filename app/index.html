@@ -365,10 +365,7 @@
       <div class="panel panel-right">
         <div class="panel-header">
           <span class="panel-title">DONE TODAY</span>
-          <div style="display:flex;align-items:center;gap:8px;">
-            <button class="archive-btn" id="archiveBtn" onclick="archiveCompleted()">ARCHIVE &#8595;</button>
-            <span class="badge badge-muted" id="doneCount">0 DONE</span>
-          </div>
+          <span class="badge badge-muted" id="doneCount">0 DONE</span>
         </div>
         <div class="task-list" id="doneList"></div>
       </div>
@@ -376,7 +373,7 @@
 
     <!-- History tab -->
     <div class="tvf" id="tab-history">
-      <div class="sec">ARCHIVED JOBS &mdash; THIS WEEK, PRIOR WEEKS, AND SAME WEEK PRIOR YEARS &middot; TAP ANY TASK TO COPY TO TODAY</div>
+      <div class="sec">COMPLETED JOBS &mdash; GROUPED BY WEEK &middot; TAP ANY TASK TO COPY TO TODAY'S ADD BAR</div>
       <div id="historyList"></div>
     </div>
 
@@ -536,6 +533,10 @@ function tick(){
   if(dl) dl.textContent = n.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}).toUpperCase();
 }
 tick(); setInterval(tick,1000);
+
+// Re-render the board once a minute so DONE TODAY rolls off automatically at midnight.
+// Cheap because it's purely client-side filtering of the in-memory tasks array.
+setInterval(()=>{ if(currentFarm) render(); }, 60*1000);
 
 // ── View management
 function cap(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
@@ -746,12 +747,24 @@ async function loadFarm(){
 }
 
 async function fetchTasks(){
+  // Pull only what the board needs to display:
+  //  - any active job (done = false), regardless of when it was created
+  //  - any job completed today (so DONE TODAY is populated)
+  // Yesterday's-and-earlier completed jobs live in the History tab only.
+  const dayStart = new Date(); dayStart.setHours(0,0,0,0);
   const {data} = await sb
     .from('tasks').select('*')
     .eq('farm_id',currentFarm.id)
-    .eq('archived',false)
+    .or('done.eq.false,completed_at.gte.'+dayStart.toISOString())
     .order('created_at',{ascending:true});
   return data||[];
+}
+
+function isToday(iso){
+  if(!iso) return false;
+  const d = new Date(iso);
+  const n = new Date();
+  return d.getFullYear()===n.getFullYear() && d.getMonth()===n.getMonth() && d.getDate()===n.getDate();
 }
 
 async function fetchFarmHands(){
@@ -777,8 +790,7 @@ function subscribeToTasks(){
     .on('postgres_changes',{event:'UPDATE',schema:'public',table:'tasks',filter:`farm_id=eq.${currentFarm.id}`},(p)=>{
       const idx = tasks.findIndex(t=>t.id===p.new.id);
       if(idx!==-1){
-        if(p.new.archived){ tasks.splice(idx,1); }
-        else { tasks[idx]=p.new; }
+        tasks[idx]=p.new;
         render();
       }
     })
@@ -840,15 +852,6 @@ async function restoreTask(id, ev){
   toast('&#8617; Restored to active');
 }
 
-async function archiveCompleted(){
-  const doneIds = tasks.filter(t=>t.done).map(t=>t.id);
-  if(!doneIds.length) return;
-  await sb.from('tasks').update({archived:true}).in('id',doneIds);
-  tasks = tasks.filter(t=>!t.done);
-  render();
-  toast(doneIds.length+' task'+(doneIds.length>1?'s':'')+' archived');
-}
-
 async function sim(){
   const m = SIMS[simIdx%SIMS.length]; simIdx++;
   const sender = farmHands.length ? farmHands[simIdx%farmHands.length].name : 'Farm Hand';
@@ -882,20 +885,21 @@ function copyHistory(idx){
 // ══════════════════════════════════════════
 function render(){
   const active = tasks.filter(t=>!t.done).sort((a,b)=>(b.priority-a.priority)||(new Date(a.created_at)-new Date(b.created_at)));
-  const done   = tasks.filter(t=>t.done);
+  // DONE TODAY is strictly tasks completed today — anything older lives in History
+  const done = tasks.filter(t=>t.done && isToday(t.completed_at))
+                    .sort((a,b)=>new Date(b.completed_at)-new Date(a.completed_at));
 
   document.getElementById('activeCount').textContent = active.length+' OPEN';
   document.getElementById('doneCount').textContent   = done.length+' DONE';
-  document.getElementById('sOpen').textContent = active.length;
-  document.getElementById('sDone').textContent = done.length;
-  document.getElementById('archiveBtn').classList.toggle('visible',done.length>0);
+  const sOpen=document.getElementById('sOpen'); if(sOpen) sOpen.textContent = active.length;
+  const sDone=document.getElementById('sDone'); if(sDone) sDone.textContent = done.length;
 
   document.getElementById('activeList').innerHTML = active.length===0
     ? '<div class="empty">ALL CAUGHT UP<br>NOTHING OPEN &#127881;</div>'
     : active.map(taskHTML).join('');
 
   document.getElementById('doneList').innerHTML = done.length===0
-    ? '<div class="empty">NOTHING COMPLETED YET</div>'
+    ? '<div class="empty">NOTHING COMPLETED YET TODAY</div>'
     : done.map(taskHTML).join('');
 
   // clean up _new flags after animation
@@ -923,25 +927,27 @@ function taskHTML(t){
 
 async function renderHistory(){
   const todayW = isoWeek(new Date());
+  // Every job ever completed for this farm — grouped by week below
   const {data} = await sb
     .from('tasks').select('*')
     .eq('farm_id',currentFarm.id)
-    .eq('archived',true)
-    .order('created_at',{ascending:false});
+    .eq('done',true)
+    .order('completed_at',{ascending:false});
 
   const all = data || [];
   historyCache = all;
   const el = document.getElementById('historyList');
 
   if(!all.length){
-    el.innerHTML='<div class="empty">NO HISTORY YET<br><br>TASKS YOU ARCHIVE FROM "DONE TODAY"<br>WILL APPEAR HERE — GROUPED BY WEEK</div>';
+    el.innerHTML='<div class="empty">NO HISTORY YET<br><br>JOBS YOU COMPLETE WILL APPEAR HERE<br>GROUPED BY WEEK</div>';
     return;
   }
 
-  // Group every archived task by its ISO week+year
+  // Group every completed job by the ISO week it was finished in
   const groups = {};
   all.forEach((t,i)=>{
-    const w = isoWeek(new Date(t.created_at));
+    const when = t.completed_at || t.created_at;
+    const w = isoWeek(new Date(when));
     const key = w.year + '-W' + String(w.week).padStart(2,'0');
     if(!groups[key]) groups[key] = { week:w.week, year:w.year, tasks:[] };
     groups[key].tasks.push({task:t, idx:i});
@@ -966,7 +972,7 @@ async function renderHistory(){
         return `<div class="htask" onclick="copyHistory(${i})" title="Tap to copy to today's add bar">
           <span class="hico">&#10003;</span>
           <span class="htxt">${esc(t.text)}</span>
-          <span class="hmeta">${esc(t.sender_name)} &middot; ${fmtDate(t.created_at)}</span>
+          <span class="hmeta">${esc(t.sender_name)} &middot; ${fmtDate(t.completed_at || t.created_at)}</span>
         </div>`;
       }).join('')}
     </div>`;
