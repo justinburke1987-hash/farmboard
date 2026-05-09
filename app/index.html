@@ -762,13 +762,10 @@ async function loadFarm(){
         throw new Error('INSERT failed: ' + ins.error.message + ' (code: ' + (ins.error.code||'?') + ')');
       }
       currentFarm = ins.data;
-      clearTimeout(timeout);
-      dbg('Farm created — going to setup screen', 'var(--green)');
-      showView('setup');
-      return;
+      dbg('Farm created — loading app directly', 'var(--green)');
+    } else {
+      currentFarm = sel.data;
     }
-
-    currentFarm = sel.data;
     dbg('Loading tasks and farm hands...');
     const [t,h] = await withTimeout(
       Promise.all([fetchTasks(), fetchFarmHands()]),
