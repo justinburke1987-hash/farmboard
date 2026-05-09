@@ -731,11 +731,11 @@ function withTimeout(promise, ms, label){
 
 async function loadFarm(){
   dbg('loadFarm() started for user: ' + (currentUser ? currentUser.email : 'NULL'), 'var(--green)');
-  // Show error UI button after 4s no matter what
+  // Show error UI button after 12s no matter what
   const timeout = setTimeout(()=>{
-    dbg('Loading taking >4s — showing recovery buttons', 'var(--amber)');
+    dbg('Loading taking >12s — showing recovery buttons', 'var(--amber)');
     document.getElementById('loadingErr').style.display='block';
-  }, 4000);
+  }, 12000);
 
   try {
     dbg('Querying farms table...');
@@ -1258,7 +1258,7 @@ sb.auth.onAuthStateChange(async(event,session)=>{
 (async()=>{
   dbg('Checking for existing session...');
   try {
-    const res = await withTimeout(sb.auth.getSession(), 4000, 'getSession');
+    const res = await withTimeout(sb.auth.getSession(), 12000, 'getSession');
     const session = res.data && res.data.session;
     dbg('getSession returned: ' + (session ? 'session for '+session.user.email : 'no session'));
     if(!session) showView('auth');
