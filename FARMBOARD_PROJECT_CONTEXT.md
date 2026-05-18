@@ -1,300 +1,276 @@
 # FarmBoard — Project Context
 
-> **Purpose:** Bring a fresh Claude Code session up to speed instantly. Paste this at the start of any new session so we don't have to re-explain context.
+> **Purpose of this doc:** Bring Claude Code up to speed instantly so we can iterate on FarmBoard without re-explaining context. Paste this at the start of any new Claude Code session — or Claude's memory system will load it automatically.
 
 ---
 
-## Current Status (as of May 7, 2026)
+## What Is FarmBoard?
 
-**Live and working:**
-- **Landing page:** https://farmboardapp.com
-- **App:** https://farmboardapp.com/app — full Supabase-backed multi-tenant app with auth, RLS, realtime, mobile layout
-- **Domain:** farmboardapp.com (purchased through Vercel)
-- **GitHub:** https://github.com/justinburke1987-hash/farmboard (auto-deploys to Vercel from `main`)
-- **Supabase project:** `msrduyfwfdpsdrmymvui` — schema deployed, RLS policies live, anon key embedded in client
-
-**What works end-to-end right now:**
-1. User goes to farmboardapp.com → sees landing page with Formspree waitlist
-2. User goes to /app → signs up or signs in with email/password
-3. First-time users land on a Setup screen → name farm + add farm hands
-4. Returning users land on the live board (Active Jobs / Done Today / History / Inbox)
-5. Add tasks manually, mark complete (with themed confirm modal), restore from Done Today, view all completed jobs grouped by week in History
-6. Settings panel: change farm name, upload farm logo, add/remove farm hands
-7. Realtime updates via Supabase `postgres_changes` subscriptions
-8. Mobile layout works on iPhone (small + large), desktop layout for shop-TV use
-
-**What's NOT built yet (the remaining roadmap):**
-- Backend service (Node.js/Express on Railway)
-- Twilio SMS webhook → task creation from texts
-- Telegram bot integration
-- Task assignment to specific farm hands
-- SMS reply confirmations
-- Stripe billing + plan-tier enforcement
-- Polished onboarding flow + landing-page conversion pass
-
----
-
-## What FarmBoard Is
-
-A SaaS web app for mid-to-large farming operations to replace the whiteboard-and-notebook task management system. Crew texts/messages a dedicated phone number → tasks appear on a shared board → team checks them off → seasonal history is preserved automatically.
+A lightweight SaaS web app for mid-to-large farming operations to replace the whiteboard/notebook task management system. Farmers and farm hands text or message a dedicated phone number → tasks appear on a shared board → team checks them off → history is preserved seasonally.
 
 **Core insight:** The actual competitor is a whiteboard and a notebook. No existing tool does SMS-in + seasonal history in a farm-specific context.
 
-**Target customer:** US farms 2,000+ acres or multi-employee livestock operations. ~85,000 addressable.
+---
+
+## The Problem It Solves
+
+At a typical operation (example: family farm with 3–6 people), task coordination happens via:
+- Physical whiteboard in the shop
+- Notebook sheets of paper
+- Informal verbal communication
+
+This breaks down during busy seasons (planting, harvest) when coordination across people and equipment is critical. FarmBoard puts the task board on any screen — shop TV, phone, tablet — and lets anyone add tasks by texting a number.
 
 ---
 
-## File Structure (current)
+## Current Status — Phase 3 In Progress (LIVE)
 
-```
-FarmBoard/
-├── index.html                      ← Landing page (Vercel root)
-├── app/
-│   └── index.html                  ← The Supabase-powered app
-├── farmboard_demo.html             ← Original Phase 1 prototype — DO NOT MODIFY
-├── Engelstad Farms logo.png        ← Justin's farm logo asset
-├── FARMBOARD_PROJECT_CONTEXT.md    ← this file
-└── .git/                           ← deploys to Vercel via main branch
-```
+**Live URL:** https://farmboardapp.com/app
 
-**Hard rule:** `farmboard_demo.html` is the original Phase 1 prototype. It is preserved as a historical reference. **Never modify it.** All current work happens in `app/index.html` and `index.html`.
+**GitHub repo:** https://github.com/justinburke1987-hash/farmboard
 
----
+**Local clone:** `C:\Users\justi\OneDrive\Desktop\Farmboard\farmboard-repo`
 
-## Tech Stack (current)
+**Key file:** `app/index.html` — single-file app (vanilla JS + Supabase integration)
 
-| Layer | Choice | Status |
-|---|---|---|
-| Frontend | Vanilla HTML / CSS / JS (no framework) | ✅ Live |
-| Hosting | Vercel (auto-deploy from GitHub `main`) | ✅ Live |
-| Database | Supabase Postgres | ✅ Live |
-| Auth | Supabase Auth (email + password, no email confirmation required) | ✅ Live |
-| Realtime | Supabase `postgres_changes` subscriptions | ✅ Live |
-| Row Level Security | Explicit per-operation policies on all tables | ✅ Live |
-| Waitlist capture | Formspree (`xeenkdvq`) | ✅ Live |
-| Backend | Node.js / Express on Railway | ❌ Not started |
-| SMS | Twilio | ❌ Not started |
-| Messaging | Telegram Bot API | ❌ Not started |
-| Billing | Stripe | ❌ Not started |
+**Hosting:** Vercel — connected to GitHub main branch, auto-deploys on every push to main.
 
-**Why Supabase (chosen during Step 2):** Postgres relational data fits the multi-tenant farm/hand/task model better than Firebase's document store, and RLS gives us multi-tenancy without server-side enforcement.
+### How to push changes
 
----
-
-## Supabase Schema (live)
-
-```sql
--- farms: one per signed-up user (owner)
-farms (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  owner_id uuid NOT NULL REFERENCES auth.users(id),
-  name text NOT NULL DEFAULT 'My Farm',
-  logo_data text,                -- base64 data URL, max ~500KB
-  created_at timestamptz DEFAULT now()
-)
-
--- farm_hands: roster of named senders for the farm
-farm_hands (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  farm_id uuid NOT NULL REFERENCES farms(id),
-  name text NOT NULL,
-  phone text,                    -- nullable, used later for SMS allowlist
-  created_at timestamptz DEFAULT now()
-)
-
--- tasks: jobs on the board
-tasks (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  farm_id uuid NOT NULL REFERENCES farms(id),
-  text text NOT NULL,
-  sender_name text,
-  source text,                   -- 'MANUAL' | 'TEXT' | 'TELEGRAM' (future)
-  priority boolean DEFAULT false,
-  done boolean DEFAULT false,
-  completed_at timestamptz,
-  archived boolean DEFAULT false, -- legacy column, no longer set by app
-  created_at timestamptz DEFAULT now()
-)
+```powershell
+# Edit app/index.html locally, then:
+cd "C:\Users\justi\OneDrive\Desktop\Farmboard\farmboard-repo"
+git add app/index.html
+git commit -m "your message"
+git push
+# Vercel deploys automatically in ~30-60 seconds
 ```
 
-**RLS policies (all three tables):** explicit per-operation policies (`select`/`insert`/`update`/`delete`) plus `GRANT` to the `authenticated` role. The original combined `FOR ALL` policy did not work for INSERT — must be split.
+**Git identity already configured** in the repo:
+- `user.email = justinburke1987@gmail.com`
+- `user.name = Justin Burke`
 
-```sql
-GRANT USAGE ON SCHEMA public TO anon, authenticated;
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.farms       TO authenticated;
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.farm_hands  TO authenticated;
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.tasks       TO authenticated;
+**GitHub CLI (`gh`) is installed** at `C:\Program Files\GitHub CLI\gh.exe` and authenticated as `justinburke1987-hash`. To use it in a new terminal session, refresh PATH first:
+```powershell
+$env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+gh <command>
 ```
 
-`farms` policies key on `owner_id = auth.uid()`. `farm_hands` and `tasks` policies key on `farm_id IN (SELECT id FROM farms WHERE owner_id = auth.uid())`.
+### What is fully working right now
+
+- [x] Supabase Auth — account creation, sign in, session persistence
+- [x] Farm auto-creation on first login
+- [x] First-time setup screen (farm name + crew members)
+- [x] Task board — active jobs left panel, done today right panel
+- [x] Priority flag (red dot) — sorts to top
+- [x] Task assignment to crew members
+- [x] Archive to history — grouped by ISO week
+- [x] "SAME WEEK" badge — prior-year groups matching current calendar week highlighted green
+- [x] Inbox tab — incoming message log
+- [x] Realtime subscriptions — tasks sync across devices via Supabase Realtime
+- [x] Settings overlay — farm name, logo upload, crew management
+- [x] Simulate SMS button
+- [x] Toast notifications
+- [x] Live clock + date in header
+- [x] Fullscreen button
+- [x] Mobile-responsive layout (fixed add bar at bottom on mobile)
+- [x] Status bar always visible at bottom (desktop)
+- [x] Confirm dialog on task completion (prevents accidental taps)
+- [x] Task assignment dropdown per task
+
+### Recent bug fixes (May 2026)
+
+- **TOKEN_REFRESHED silent handling** — Supabase refreshes the auth token every hour. Previously this triggered `loadFarm()` and threw up the loading spinner, interrupting the shop TV. Now token refreshes are silent.
+- **Removed getSession() race condition** — The IIFE `getSession()` call at init was racing against `onAuthStateChange` and could push users to the auth screen even after a successful load.
+- **Timeouts increased** — `withTimeout` values raised from 8000ms → 20000ms on all Supabase queries. Display fallback raised to 25s.
+- **RETRY button** — Loading error now shows a green RETRY button as primary action. "Sign out" is a subtle secondary link so users don't accidentally sign themselves out on a network hiccup.
+- **Realtime reconnect on visibility change** — If the WebSocket drops while the shop TV is in the background, it reconnects automatically when the page becomes visible again.
+
+### What is NOT done yet (next up)
+
+- [ ] **Twilio SMS integration** — Real incoming texts → tasks (Phase 3 backend)
+- [ ] **Telegram Bot** — Secondary messaging channel
+- [ ] **Node.js/Express backend on Railway** — Twilio webhook receiver
+- [ ] **Trusted phone number allowlist enforcement** — Currently cosmetic only
+- [ ] **Multi-farm / multi-user roles** — Admin vs. viewer (Phase 4)
+- [ ] **Stripe billing** — Plan tier enforcement (Phase 5)
+- [ ] **Landing page** — farmboard.app or getfarmboard.com
 
 ---
 
-## Current App Behavior (v1 of /app)
+## localStorage Keys (legacy — now Supabase)
 
-### Auth flow
-- Sign up or sign in via email + password
-- No email confirmation required (turned OFF in Supabase Auth settings)
-- Session persists in localStorage (`sb-msrduyfwfdpsdrmymvui-auth-token`)
-- Init logic: stay on loading screen until `getSession()` resolves; route to setup/app if session exists, auth screen if not. **Critical:** `submitAuth()` must NOT call `showView()` itself — onAuthStateChange handles all view routing, otherwise a race clobbers the setup screen.
-
-### Board behavior
-- **Active Jobs (left panel):** all `done = false` tasks. Sorted: priority desc, then created_at asc.
-- **Done Today (right panel):** all `done = true` tasks where `completed_at` is today. Auto-rolls off at midnight (re-renders every 60s client-side).
-- **Tap an active task** → themed confirm modal: "Mark this job as complete?"
-- **Tap a done task** → restored to Active immediately, no confirm.
-- **Amber RESTORE button** on every done task as a clearer affordance.
-
-### History tab
-- Pulls every `done = true` task for the farm (regardless of `archived`).
-- Groups by ISO week of `completed_at`, most recent week first.
-- Three badge styles: green "THIS WEEK", amber "SAME WEEK · {prior year}", neutral year badge for older weeks.
-- Tap any historical task → copies its text to today's add bar.
-
-### Settings panel
-- Farm name (free text)
-- Farm logo upload (base64 data URL stored in `farms.logo_data`, max 500KB)
-- Add/remove farm hands (name + optional phone)
-- Sign out button
-
-### Mobile layout (≤700px)
-- Whole page scrolls naturally; `html/body` locked to `100vw` with `overflow-x:hidden`
-- `.tv` and `.tvf` overridden to `flex:none` so they don't collapse to 0 height inside `.main { flex:none }`
-- Active Jobs and Done Today stack vertically (Active on top, Done below)
-- Add bar **fixed** to viewport bottom with two rows: row 1 sender + priority dot, row 2 input + ADD button
-- Input set to 16px font-size to prevent iOS auto-zoom on focus
-- SMS demo button hidden on mobile
-- Status bar hidden on mobile (counts already in panel header badges)
-- Tighter horizontal padding everywhere
-
-### Confirm modal
-- Themed in-app modal (replaces native `confirm()`)
-- Bebas Neue header, mono buttons, green-bordered quote box for the task text
-- Esc cancels, Enter confirms
-- Mobile: buttons stack full-width
-- Reusable via `confirmDialog({title, message, quote, okLabel, cancelLabel})` returning a Promise
-
-### Debug overlay
-- Hidden by default
-- Auto-reveals only on amber/red `dbg()` events (errors or timeouts)
-- Useful for diagnosing future production issues without ever cluttering the normal UX
+The original prototype used localStorage. The live app uses Supabase. These keys no longer drive the live app but are preserved in `farmboard_demo.html` for offline demos.
 
 ---
 
-## Design System (DO NOT CHANGE WITHOUT REASON)
+## Supabase
 
-### Colors
-```css
---bg:        #0f110e   /* near-black green-tinted background */
---surface:   #161a14   /* cards/panels */
---surface2:  #1e241b   /* hover, inputs */
---border:    #2a3226   /* dividers */
---green:     #7ec850   /* primary accent */
---green-dim: #4a7a2e   /* green backgrounds */
---amber:     #e8a030   /* warnings, history badges, restore */
---amber-dim: #7a5218
---red:       #e05050   /* priority */
---text:      #e6ecdb   /* primary text (brightened May 2026) */
---text-dim:  #a8b596   /* secondary (brightened May 2026) */
---text-muted:#7d8a6a   /* faintest legible (brightened May 2026) */
-```
+**Project URL:** `https://msrduyfwfdpsdrmymvui.supabase.co`
 
-> Text colors were brightened in May 2026 because the original `#d4dbc8 / #7a8a6a / #4a5a3a` was hard to read in office monitors and on phones in sunlight.
+**Anon key:** In `app/index.html` (public/safe — anon key only, RLS enforced)
 
-### Typography
-- Display/headings: **Bebas Neue**
-- Mono labels/timestamps: **IBM Plex Mono**
-- Body/UI: **IBM Plex Sans**
+**Tables:**
+- `farms` — `id, owner_id, name, logo_data, created_at`
+- `farm_hands` — `id, farm_id, name, phone, created_at`
+- `tasks` — `id, farm_id, text, sender_name, source, done, priority, assigned_to, completed_at, archived, created_at`
 
-### Layout
-Two-panel split on desktop (Active left, Done Today right). Single-column stacked on mobile. Tabs: Board / History / Inbox. Status bar bottom (desktop only).
+**Auth:** Supabase Auth — email/password. Session tokens auto-refresh every hour (now handled silently in the client).
+
+**Realtime:** Supabase Realtime subscriptions on the `tasks` table, filtered by `farm_id`.
 
 ---
 
-## Roadmap — Where We Are
+## Phase Roadmap
 
-### ✅ Phase 1 — Static Prototype (DONE)
-Single-page HTML demo with active/done panels, history, inbox sim, manual add, check off, live clock, fullscreen button, simulated incoming SMS. Lives in `farmboard_demo.html`. Preserved untouched.
+### Phase 1 — Static Prototype ✅ COMPLETE
+Single-file HTML app. All core UI and interactions working.
 
-### ✅ Phase 2 Step 1 — Demo-Ready (DONE in demo file)
-- localStorage persistence ✅
-- Settings panel (farm name, hands) ✅
-- Mobile layout ✅
-- Clear-completed → archive flow (later replaced by automatic Done Today rollover) ✅
+### Phase 2 — Functional Local App ✅ COMPLETE
+localStorage persistence, settings, sender selector, simulate SMS, archive to history, same-week detection, sort control, priority toggle UI.
 
-### ✅ Phase 2 Step 2 — Real Data Layer (DONE — went straight to Supabase, skipped pure localStorage refactor)
-- Supabase tables, RLS, grants ✅
-- Auth (email + password) ✅
-- Multi-tenant data isolation ✅
-- Realtime subscriptions ✅
-- Settings persistence in DB ✅
-- History grouped by week with same-week-prior-year highlight ✅
-- Themed confirm modal, restore button, mobile fixes, contrast fixes ✅
-- 12-hour AM/PM clock, MM/DD/YY date on tasks ✅
-- Done Today auto-rollover (no manual archive step) ✅
+### Phase 3 — Backend + SMS Integration 🔄 IN PROGRESS
+- [x] Supabase project + tables + RLS
+- [x] Supabase Auth (email/password)
+- [x] Realtime subscriptions
+- [x] Frontend live at farmboardapp.com/app on Vercel
+- [ ] Node.js/Express backend on Railway
+- [ ] Twilio webhook: incoming SMS → task creation
+- [ ] Telegram Bot API support
 
-### ⏳ Phase 3 — Backend + SMS (NEXT UP)
-- [ ] Railway project, Node.js / Express server scaffolded
-- [ ] Twilio account, buy first phone number
-- [ ] `POST /webhook/sms` → validate sender against `farm_hands.phone` allowlist → INSERT into `tasks` with `source = 'TEXT'`
-- [ ] App already subscribes to realtime, so new SMS tasks appear automatically — minimal frontend work
-- [ ] Trusted-number management UI in Settings (phone field already exists on farm_hands)
-- [ ] Outbound SMS confirmation reply ("✓ Task added: ...")
+### Phase 4 — Multi-User & Assignment
+- [ ] SMS reply confirmation
+- [ ] Admin vs. viewer roles
+- [ ] Named farm hand profiles linked to phone numbers
 
-### ⏳ Phase 4 — Beta With Real Farms
-- [ ] Telegram bot integration (parallel to SMS)
-- [ ] Task assignment to a specific farm hand
-- [ ] Onboarding refinement
-- [ ] Basic analytics (tasks/day, completion rate)
-
-### ⏳ Phase 5 — Monetization
+### Phase 5 — SaaS Infrastructure
 - [ ] Stripe billing + subscription management
-- [ ] Plan tier enforcement (history limits, contact limits)
-- [ ] Landing-page conversion pass
-- [ ] Public signup flow
+- [ ] Plan tier enforcement
+- [ ] Landing page + public onboarding
 
 ---
 
-## Pricing & Business Model (unchanged)
+## Design System
 
-| Tier | Price | Key Limits |
+**Aesthetic:** Industrial/utilitarian — built for a shop TV, not a consumer app. High contrast, readable from across a room. Do NOT introduce new fonts or alter this aesthetic.
+
+**Color Palette (CSS variables):**
+```css
+--bg: #0f110e           /* near-black green-tinted background */
+--surface: #161a14      /* card/panel background */
+--surface2: #1e241b     /* hover states, inputs */
+--border: #2a3226       /* dividers */
+--green: #7ec850        /* primary accent — active, confirmed */
+--green-dim: #4a7a2e    /* green backgrounds */
+--green-glow: rgba(126,200,80,0.12)
+--amber: #e8a030        /* warnings, history badges */
+--amber-dim: #7a5218
+--red: #e05050          /* priority/urgent */
+--text: #e6ecdb         /* primary text */
+--text-dim: #a8b596     /* secondary text */
+--text-muted: #7d8a6a   /* labels, timestamps */
+```
+
+**Typography:**
+- Display/headings: `Bebas Neue` (Google Fonts)
+- Monospace labels/metadata: `IBM Plex Mono`
+- Body/UI: `IBM Plex Sans`
+
+**Layout:** Two-panel split on board (active left, completed right). Tabs for Board / History / Inbox. Status bar always visible at bottom (hidden on mobile).
+
+---
+
+## Tech Stack
+
+### Frontend
+- **Current:** Vanilla HTML/CSS/JS — single file `app/index.html`
+- **Hosting:** Vercel (free tier, auto-deploy from GitHub main)
+- **Realtime:** Supabase Realtime subscriptions
+
+### Backend (Phase 3 — not yet built)
+- **Runtime:** Node.js (Express)
+- **Hosting:** Railway.app
+- **SMS:** Twilio ($1/mo per number + $0.0079/SMS)
+- **Messaging:** Telegram Bot API (free, secondary)
+
+### Database
+- **Primary:** Supabase (Postgres + Realtime + Auth)
+
+### Auth
+- Supabase Auth — email/password for admin
+
+---
+
+## Business Model
+
+**Target customer:** Farms with 2,000+ acres or multi-employee livestock operations. US addressable market ~85,000 operations.
+
+| Tier | Price | Limits |
 |---|---|---|
 | Starter | $29/mo | 1 phone number, 5 trusted contacts, 90-day history |
 | Farm | $49/mo | 1 phone number, unlimited contacts, 2-year history, Telegram |
 | Operation | $79/mo | 3 phone numbers, task assignment, multi-user roles |
 
-Cost per farm ~$2–3/mo. Gross margin ~94%. Breakeven ~10 paying farms.
+**Unit economics (Farm tier):** ~$2–3/mo cost per farm. ~94% gross margin. Breakeven at ~10 paying farms.
 
-GTM: Ag Facebook groups, county extension offices, co-op partnerships, word of mouth. Creator has 13+ years precision-ag background.
-
----
-
-## Notes / Conventions for Claude Code Sessions
-
-- **Never modify `farmboard_demo.html`** — it is preserved as-is.
-- **Vanilla JS only** for now — no framework until Phase 3 complexity demands it.
-- **Color palette and fonts are locked** — don't introduce new ones without explicit user approval.
-- **Priority tasks (red dot) sort to top** of Active.
-- **localStorage keys and column names match** so the swap to a backend is clean.
-- **Anon key is public by design** — embedded in `app/index.html` is fine. Service-role key (Phase 3) must NEVER be in the frontend.
-- **Auto-deploy from `main`** — every push to GitHub `main` deploys to Vercel within ~45 seconds. Test locally / ask user before pushing risky changes.
-- **Vercel deploys both `index.html` (root) and `app/index.html` (under /app)** — same project, no monorepo split.
-- **Supabase RLS:** if a new table is added, must include both `GRANT` to `authenticated` and explicit per-operation policies. Combined `FOR ALL` does not handle INSERT correctly.
-- **Mobile-first:** every layout decision should still work on a small iPhone. Test with `@media(max-width:700px)` block.
-- **Themed confirm modal:** route any future destructive confirmations through `confirmDialog()` instead of `confirm()`.
+**GTM:** Ag Facebook groups, county extension offices, co-op partnerships, word of mouth. Justin has 13+ years precision ag background — strong credibility.
 
 ---
 
-## Key Identifiers (for next session)
+## Key Decisions Still Open
 
-- **Supabase project URL:** `https://msrduyfwfdpsdrmymvui.supabase.co`
-- **GitHub repo:** `justinburke1987-hash/farmboard` (branch: `main`)
-- **Vercel project:** auto-named `farmboard`, owned by `justinburke1987-6345s-projects`
-- **Formspree ID (waitlist):** `xeenkdvq`
-- **Domain:** `farmboardapp.com` (purchased through Vercel May 7, 2026)
-- **Creator email:** `justin.m.burkepro@gmail.com`
-- **Sign-in test account:** `justinburke1987@gmail.com`
+1. **Telegram vs. SMS priority** — SMS first (universal), Telegram as bonus
+2. **One Twilio number per farm vs. shared number with farm codes** — Lean toward one-per-farm (cleaner UX, $1/farm/mo)
+3. **Domain name** — `farmboard.app` or `getfarmboard.com` — check availability
+4. **React vs. vanilla JS** — Stay vanilla until Phase 3 backend complexity demands it
 
 ---
 
-*Last updated: May 7, 2026 | Phase 2 Step 2 complete, Phase 3 next | Justin Burke*
+## Current File Structure
+
+```
+farmboard/                          ← GitHub repo root
+├── app/
+│   └── index.html                  ← LIVE app (Supabase-connected)
+├── farmboard_demo.html             ← Offline demo (localStorage only, no backend)
+├── index.html                      ← Vercel root redirect
+├── FARMBOARD_PROJECT_CONTEXT.md    ← This file
+└── .gitignore
+```
+
+Local clone: `C:\Users\justi\OneDrive\Desktop\Farmboard\farmboard-repo`
+
+---
+
+## Demo Instructions
+
+1. Go to https://farmboardapp.com/app
+2. Sign in (or create an account)
+3. Check off a task → it moves to Done Today
+4. Click the **History** tab → see archived tasks grouped by week, with "SAME WEEK" badge on prior-year matching weeks
+5. Hit **📱 SMS** to simulate an incoming text from a farm hand
+6. Open **Settings** (⚙) to set the farm name and add crew members
+7. Hit **⛶ Fullscreen** to show shop TV mode
+
+**Demo talking points:**
+- "Instead of the whiteboard, this is on the TV in the shop"
+- "Anyone on the farm texts the number, it shows up here in seconds"
+- "This tab shows what you were doing this same week last year — useful for pre-planting prep reminders"
+- "History builds up automatically as you use it — it's not just a log, it's seasonal memory"
+- "It stays up on the TV all day — anyone can see what's open and what's done"
+
+---
+
+## Notes for Claude Code Sessions
+
+- Always maintain the established color palette and typography — no new fonts, no aesthetic changes
+- Keep the codebase in vanilla JS — resist framework complexity until Phase 3 backend warrants it
+- The "same week last year" history feature is the key product differentiator — preserve it
+- The status bar at the bottom must always be visible on desktop
+- The app is designed to stay open all day on a shop TV — never interrupt the running app with loading screens for background operations (token refresh, etc.)
+- Push changes via git from the local clone at `C:\Users\justi\OneDrive\Desktop\Farmboard\farmboard-repo`
+- Refresh PATH before using `gh` CLI in new PowerShell sessions (see GitHub CLI note above)
+
+---
+
+*Last updated: May 17, 2026 | Creator: Justin Burke | Contact: justin.m.burkepro@gmail.com*
