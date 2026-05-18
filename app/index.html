@@ -1249,8 +1249,19 @@ dbg('Init: checking auth state...');
 let _loadFarmRunning = false;
 sb.auth.onAuthStateChange(async(event,session)=>{
   dbg('onAuthStateChange fired: event=' + event + ', session=' + (session ? 'YES (user '+session.user.email+')' : 'no'));
+
+  // Token refreshes and user updates are silent — just keep currentUser fresh.
+  // Do NOT reload the farm or interrupt the running app (critical for shop TV mode).
+  if(event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED'){
+    if(session) currentUser = session.user;
+    dbg('Silent token refresh — app continues running');
+    return;
+  }
+
   if(session){
-    if(_loadFarmRunning){ dbg('loadFarm already running — skip duplicate', 'var(--amber)'); return; }
+    // If the farm is already loaded, nothing to do.
+    if(currentFarm){ currentUser = session.user; return; }
+    if(_loadFarmRunning){ dbg('loadFarm already running — skip duplicate'); return; }
     _loadFarmRunning = true;
     currentUser = session.user;
     showView('loading');
@@ -1262,6 +1273,15 @@ sb.auth.onAuthStateChange(async(event,session)=>{
 
 // onAuthStateChange fires immediately with INITIAL_SESSION from localStorage —
 // no need for a separate getSession() call, which would race against loadFarm().
+
+// When the TV screen comes back into focus (browser tab visible again), resubscribe
+// to realtime in case the WebSocket dropped while the page was in the background.
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState === 'visible' && currentFarm){
+    dbg('Page visible — resubscribing to realtime');
+    subscribeToTasks();
+  }
+});
 
 </script>
 </body>
