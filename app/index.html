@@ -253,13 +253,13 @@
       padding:8px 10px;
       box-shadow:0 -4px 18px rgba(0,0,0,0.4);
     }
-    /* Row 1: who | priority */
-    .add-bar .sel{flex:1 1 65%;order:1;}
-    .add-bar .btn-pri{flex:0 0 auto;order:2;}
-    .add-bar .btn-sim{display:none;} /* hide SMS demo button on mobile */
+    /* Row 1: assignee | assign-to | priority */
+    .add-bar #who{flex:1 1 42%;order:1;}
+    .add-bar #assignTo{flex:1 1 42%;order:2;}
+    .add-bar .btn-pri{flex:0 0 auto;order:3;}
     /* Row 2: input | ADD */
-    .add-bar .add-inp{flex:1 1 60%;order:3;font-size:16px;} /* 16px = no iOS zoom on focus */
-    .add-bar .btn-add{flex:0 0 auto;order:4;padding:10px 16px;}
+    .add-bar .add-inp{flex:1 1 70%;order:4;font-size:16px;} /* 16px = no iOS zoom on focus */
+    .add-bar .btn-add{flex:0 0 auto;order:5;padding:10px 16px;}
 
     /* Hide status bar on mobile — counts already shown in panel header badges */
     .statusbar{display:none;}
@@ -403,13 +403,18 @@
         <div class="panel-header">
           <span class="panel-title">ACTIVE JOBS</span>
           <span class="badge badge-green" id="activeCount">0 OPEN</span>
+          <select class="sel" id="filterAssignee" onchange="setFilter(this.value)" style="margin-left:auto;font-size:10px;padding:4px 8px;">
+            <option value="">ALL CREW</option>
+          </select>
         </div>
         <div class="task-list" id="activeList"></div>
         <div class="add-bar">
-          <select class="sel" id="who"></select>
+          <select class="sel" id="who" title="Assignee — who is adding this task"></select>
           <input class="add-inp" id="inp" placeholder="Add a task..." onkeydown="if(event.key==='Enter')addTask()">
+          <select class="sel" id="assignTo" title="Assign To — who should do this">
+            <option value="">— Assign To —</option>
+          </select>
           <button class="btn-pri" id="priorityToggle" onclick="togglePri()" title="Toggle priority">&#128308;</button>
-          <button class="btn-sim" onclick="sim()">&#128241; SMS</button>
           <button class="btn-add" onclick="addTask()">+ ADD</button>
         </div>
       </div>
@@ -528,6 +533,7 @@ let farmHands   = [];
 let realtimeChannel = null;
 let settingsOpen = false;
 let newPriority  = false;
+let filterAssignee = '';
 let simIdx       = 0;
 let historyCache = [];
 let settingsDraft = null;
@@ -855,6 +861,8 @@ async function addTask(){
   const text = document.getElementById('inp').value.trim();
   if(!text) return;
   const senderName = document.getElementById('who').value || 'Manual';
+  const assignToEl = document.getElementById('assignTo');
+  const assignedTo = assignToEl ? (assignToEl.value || null) : null;
 
   const {data,error} = await sb.from('tasks').insert({
     farm_id:     currentFarm.id,
@@ -862,12 +870,14 @@ async function addTask(){
     sender_name: senderName,
     source:      'MANUAL',
     priority:    newPriority,
+    assigned_to: assignedTo,
   }).select().single();
 
   if(error){ toast('Error: '+error.message); return; }
 
   tasks.unshift(data);
   document.getElementById('inp').value='';
+  if(assignToEl) assignToEl.value='';
   if(newPriority){ newPriority=false; updatePriBtn(); }
   render();
   toast('Task added');
@@ -952,7 +962,8 @@ function copyHistory(idx){
 // RENDER
 // ══════════════════════════════════════════
 function render(){
-  const active = tasks.filter(t=>!t.done).sort((a,b)=>(b.priority-a.priority)||(new Date(a.created_at)-new Date(b.created_at)));
+  const active = tasks.filter(t=>!t.done && (!filterAssignee || t.assigned_to===filterAssignee))
+    .sort((a,b)=>(b.priority-a.priority)||(new Date(a.created_at)-new Date(b.created_at)));
   // DONE TODAY is strictly tasks completed today — anything older lives in History
   const done = tasks.filter(t=>t.done && isToday(t.completed_at))
                     .sort((a,b)=>new Date(b.completed_at)-new Date(a.completed_at));
@@ -1174,6 +1185,25 @@ function updateWhoSelect(){
   const names=[...farmHands.map(h=>h.name),'Manual'];
   sel.innerHTML=names.map(n=>`<option>${esc(n)}</option>`).join('');
   if(names.includes(cur)) sel.value=cur;
+
+  const assignSel=document.getElementById('assignTo');
+  if(assignSel){
+    const curA=assignSel.value;
+    assignSel.innerHTML='<option value="">— Assign To —</option>'+farmHands.map(h=>`<option value="${esc(h.name)}">${esc(h.name)}</option>`).join('');
+    if(curA) assignSel.value=curA;
+  }
+
+  const filterSel=document.getElementById('filterAssignee');
+  if(filterSel){
+    const curF=filterSel.value;
+    filterSel.innerHTML='<option value="">ALL CREW</option>'+farmHands.map(h=>`<option value="${esc(h.name)}">${esc(h.name)}</option>`).join('');
+    if(curF) filterSel.value=curF;
+  }
+}
+
+function setFilter(val){
+  filterAssignee=val;
+  render();
 }
 
 // ── Priority toggle
