@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -306,8 +306,10 @@
   <div class="load-logo">FARMBOARD</div>
   <div class="load-bar"><div class="load-fill"></div></div>
   <div id="loadingErr" style="display:none;margin-top:24px;text-align:center;">
-    <div style="font-family:var(--mono);font-size:11px;color:var(--red);letter-spacing:1px;margin-bottom:14px;" id="loadingErrMsg">Connection timed out.</div>
-    <button onclick="forceSignOut()" style="background:transparent;border:1px solid var(--border);border-radius:4px;padding:9px 20px;font-family:var(--mono);font-size:11px;color:var(--text-muted);cursor:pointer;letter-spacing:1px;">SIGN OUT &amp; TRY AGAIN</button>
+    <div style="font-family:var(--mono);font-size:11px;color:var(--red);letter-spacing:1px;margin-bottom:16px;" id="loadingErrMsg">Connection timed out.</div>
+    <button onclick="retryLoad()" style="background:var(--green);color:#0f110e;border:none;border-radius:4px;padding:10px 28px;font-family:var(--mono);font-size:12px;font-weight:600;cursor:pointer;letter-spacing:1px;display:inline-block;margin-bottom:12px;">RETRY</button>
+    <br>
+    <button onclick="forceSignOut()" style="background:transparent;border:none;padding:4px 8px;font-family:var(--mono);font-size:10px;color:var(--text-muted);cursor:pointer;letter-spacing:1px;text-decoration:underline;">Sign out</button>
   </div>
 </div>
 
@@ -706,6 +708,13 @@ async function completeSetup(){
 // ══════════════════════════════════════════
 // DATA
 // ══════════════════════════════════════════
+async function retryLoad(){
+  document.getElementById('loadingErr').style.display = 'none';
+  document.getElementById('loadingErrMsg').textContent = 'Connection timed out.';
+  _loadFarmRunning = true;
+  try { await loadFarm(); } finally { _loadFarmRunning = false; }
+}
+
 async function forceSignOut(){
   try {
     // Try network sign out, but don't wait more than 2 seconds
@@ -733,15 +742,15 @@ async function loadFarm(){
   dbg('loadFarm() started for user: ' + (currentUser ? currentUser.email : 'NULL'), 'var(--green)');
   // Show error UI button after 12s no matter what
   const timeout = setTimeout(()=>{
-    dbg('Loading taking >12s — showing recovery buttons', 'var(--amber)');
+    dbg('Loading taking >25s — showing recovery buttons', 'var(--amber)');
     document.getElementById('loadingErr').style.display='block';
-  }, 12000);
+  }, 25000);
 
   try {
     dbg('Querying farms table...');
     const sel = await withTimeout(
       sb.from('farms').select('*').eq('owner_id',currentUser.id).maybeSingle(),
-      8000, 'SELECT farms'
+      20000, 'SELECT farms'
     );
     dbg('SELECT response: data=' + (sel.data ? 'FOUND' : 'null') + ', error=' + (sel.error ? sel.error.message : 'none'),
         sel.error ? 'var(--red)' : 'var(--green)');
@@ -754,7 +763,7 @@ async function loadFarm(){
       dbg('No farm exists — creating one...');
       const ins = await withTimeout(
         sb.from('farms').insert({owner_id:currentUser.id,name:'My Farm'}).select().single(),
-        8000, 'INSERT farm'
+        20000, 'INSERT farm'
       );
       dbg('INSERT response: data=' + (ins.data ? 'OK' : 'null') + ', error=' + (ins.error ? ins.error.message : 'none'),
           ins.error ? 'var(--red)' : 'var(--green)');
@@ -769,7 +778,7 @@ async function loadFarm(){
     dbg('Loading tasks and farm hands...');
     const [t,h] = await withTimeout(
       Promise.all([fetchTasks(), fetchFarmHands()]),
-      8000, 'fetch tasks/hands'
+      20000, 'fetch tasks/hands'
     );
     tasks = t; farmHands = h;
     dbg('Loaded ' + tasks.length + ' tasks, ' + farmHands.length + ' farm hands', 'var(--green)');
@@ -1251,20 +1260,10 @@ sb.auth.onAuthStateChange(async(event,session)=>{
   }
 });
 
-// Check existing session on load
-(async()=>{
-  dbg('Checking for existing session...');
-  try {
-    const res = await withTimeout(sb.auth.getSession(), 12000, 'getSession');
-    const session = res.data && res.data.session;
-    dbg('getSession returned: ' + (session ? 'session for '+session.user.email : 'no session'));
-    if(!session) showView('auth');
-  } catch(err) {
-    dbg('getSession ERROR: ' + err.message, 'var(--red)');
-    showView('auth');
-  }
-})();
+// onAuthStateChange fires immediately with INITIAL_SESSION from localStorage —
+// no need for a separate getSession() call, which would race against loadFarm().
 
 </script>
 </body>
 </html>
+
